@@ -15,7 +15,6 @@ uint16_t Instance::Heuristic1()	const
 
 	uint16_t dmax = *std::max_element(_d,_d+_n);
 
-	std::cout << "dmax=" << dmax << std::endl;
 
 	std::vector <uint16_t> orders(_n);
 	std::map<uint16_t, double> ratio;
@@ -114,7 +113,7 @@ uint16_t Instance::DPUpperBound(size_t tinit, const std::set<uint16_t> & visited
 
 		if (j == i)
 		{
-			T = std::accumulate(_p+(k+1),_p+_n-(k+1),0);
+			T = std::accumulate(_p+(k+1),_p+A.size(),0);
 
 			for (size_t t(0); t < T; ++t)
 			{
@@ -137,8 +136,6 @@ uint16_t Instance::DPUpperBound(size_t tinit, const std::set<uint16_t> & visited
 			}
 		}
 
-
-
 		++k;
 
 	}
@@ -147,8 +144,55 @@ uint16_t Instance::DPUpperBound(size_t tinit, const std::set<uint16_t> & visited
 	k = 1;
 	uint16_t jprev(i);
 
+	for (size_t j(1); j < A.size(); ++j)
+	{
+		uint16_t T = std::accumulate(_p+(k+1), _p + A.size(), 1);
 
-	return uint16_t();
+		for (size_t t(0); t < T; ++t)
+		{
+			uint16_t PHI1 = 0;
+			uint16_t PHI2 = 0;
+
+			if (t + _p[j] + tinit <= _d[j])
+			{
+				PHI1 = _w[j] + f[jprev][t + _p[j]];
+			}
+			else
+			{
+				PHI1 = f[jprev][t + _p[j]];
+			}
+			
+			uint16_t sum2 = std::accumulate(_p, _p + (k + 1), 0);
+			
+			if (sum2 + t + tinit <= _d[j])
+			{
+				PHI2 = f[jprev][t] + _w[j];
+			}
+			else
+			{
+				PHI2 = f[jprev][t];
+			}
+				
+			if (PHI1 < PHI2)
+			{
+				f[j][t] = PHI2;
+			}
+			else
+			{
+				f[j][t] = PHI1;
+			}
+		}
+
+
+		++k;
+		jprev = j;
+
+	}
+
+
+	uint16_t last(A.size() - 1);
+
+	return f[last][0];
 }
 
 std::ostream& operator<<(std::ostream& os, const Instance& o)

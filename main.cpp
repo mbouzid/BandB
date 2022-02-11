@@ -1,4 +1,6 @@
 #include <cstdlib>
+#include <chrono>
+#include <ctime>
 #include "solver.h"
 
 int main(int argc, char* argv[])
@@ -6,13 +8,21 @@ int main(int argc, char* argv[])
 	try
 	{
 		srand(161295);
-		const char* datname("15orders_dL_20_dU_40_no_0.dat");
+		const char* datname(argv[1]);
 
 		Instance* dat(Instance::load(datname));
 
 		Solver 	solver(dat);
 
+		auto start = std::chrono::system_clock::now();
 		solver.run();
+		auto end = std::chrono::system_clock::now();
+
+		std::chrono::duration<double> elapsed_seconds = end - start;
+		std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+
+		std::cout << elapsed_seconds.count() << std::endl;
+
 
 		delete dat;
 	}

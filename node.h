@@ -49,14 +49,42 @@ class Node
 			_priority(_._priority)
 		{}
 
+		uint16_t getJob() const
+		{
+			return _jobBranch;
+		}
+
+		uint16_t getLevel() const
+		{
+			return _level;
+		}
+
+		uint16_t getProfit() const
+		{
+			return _profit;
+		}
+
+		uint16_t getUpperBound() const
+		{
+			return _upperBound;
+		}
+
+
 		uint16_t getT() const
 		{
 			return _t;
 		}
 
+		
+
 		bool findInVisited(uint16_t i) const
 		{
 			return _visited.find(i) != _visited.cend();
+		}
+
+		void addToVisited(uint16_t i)
+		{
+			_visited.insert(i);
 		}
 
 		const std::set<uint16_t>& getVisited()	const
@@ -64,6 +92,10 @@ class Node
 			return _visited;
 		}
 
+		const std::set<uint16_t>& getSequence()	const
+		{
+			return _sequence;
+		}
 
 		static Node* dummyNode()
 		{
