@@ -2,6 +2,8 @@
 
 #include <iostream>
 #include <map>
+#include <vector>
+#include <set>
 
 class Instance
 {
@@ -49,6 +51,28 @@ class Instance
 	bool inRange_n(size_t idx) const
 	{
 		return ((0 >= idx) and (idx <= _n));
+	}
+
+protected:
+
+	void computeRatio(std::map<uint16_t, double>& ratio, const std::vector <uint16_t> & orders, size_t t)	const
+	{
+		for (size_t i : orders)
+		{
+			int16_t C(_earliestCompletionTime[i][t]);
+
+			if (ratio.find(i) == ratio.end())
+			{
+				ratio.emplace(i, -1);
+			}
+			
+			if (C == -1)
+				ratio[i] = -1;
+			else
+				ratio[i] = ((double)_d[i] - (double)_earliestCompletionTime[i][t]) / (double)_w[i];
+			
+		}
+
 	}
 
 
@@ -132,6 +156,8 @@ public:
 
 
 	uint16_t Heuristic1() const;
+
+	uint16_t DPUpperBound(size_t tinit, const std::set<uint16_t>& visited) const;
 
 
 	~Instance()

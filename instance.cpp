@@ -3,6 +3,9 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <map>
+#include <algorithm>
+#include <numeric>
 
 uint16_t Instance::Heuristic1()	const
 {
@@ -14,14 +17,138 @@ uint16_t Instance::Heuristic1()	const
 
 	std::cout << "dmax=" << dmax << std::endl;
 
+	std::vector <uint16_t> orders(_n);
+	std::map<uint16_t, double> ratio;
+
+	size_t n(0);
+	std::generate(orders.begin(), orders.end(), [&n] { return n++; });
+
+	computeRatio(ratio, orders, t);
+
+
 	while (t <= dmax)
 	{
+		std::vector<uint16_t>::iterator jiter = std::max_element
+		(
+			orders.begin(),
+			orders.end(),
+			[&ratio](uint16_t i,  uint16_t  j)
+			{ 
+				return ratio[i] < ratio[j];
+			}
+		);
 
-		++t;
+		if (jiter != orders.end())
+		{
+			uint16_t j(*jiter);
+
+			int16_t C = _earliestCompletionTime[j][t];
+			if (C != -1)
+			{
+				t = C;
+				profit += _w[j];
+				orders.erase(jiter);
+			}
+			else
+			{
+				break;
+			}
+		}
+		else
+		{
+			break;
+		}
+
+		computeRatio(ratio, orders, t);
+
 	}
 
 
 	return profit;
+}
+
+uint16_t Instance::DPUpperBound(size_t tinit, const std::set<uint16_t> & visited) const
+{
+	if (visited.size() == _n)
+	{
+		return 0;
+	}
+
+	std::vector<uint16_t> A;
+	
+	for (uint16_t i(0); i < _n; ++i)
+	{
+		if (visited.find(i) == visited.cend() and tinit + _p[i] < _d[i]+1 and _earliestCompletionTime[i][tinit] != -1 )
+		{
+			A.push_back(i);
+		}
+	}
+
+	if (A.empty())
+	{
+		return 0;
+	}
+
+	// sort by LDD
+	std::sort
+	(
+		A.begin(), A.end(),
+		[this](uint16_t i, uint16_t j)
+		{
+			return _d[i] > _d[j];
+		}
+	);
+
+
+	uint16_t i(*A.begin());
+	std::map < uint16_t, std::map<uint16_t, uint16_t> > f;
+
+	uint16_t k(0);
+	for (uint16_t j : A)
+	{
+		uint16_t T(0);
+		if (f.find(j) == f.end())
+		{
+			f.emplace(j, std::map < uint16_t, uint16_t>());
+		}
+
+		if (j == i)
+		{
+			T = std::accumulate(_p+(k+1),_p+_n-(k+1),0);
+
+			for (size_t t(0); t < T; ++t)
+			{
+				if (tinit + _p[i] + t <= _d[i])
+				{
+					f[i].emplace(t, _w[i]);
+				}
+				else
+				{
+					f[i].emplace(t, 0);
+				}
+			}
+		}
+		else
+		{
+			T = std::accumulate(_p , _p + _n , 0);
+			for (size_t t(0); t < T; ++t)
+			{
+				f[i].emplace(t, 0);
+			}
+		}
+
+
+
+		++k;
+
+	}
+
+
+	k = 1;
+	uint16_t jprev(i);
+
+
+	return uint16_t();
 }
 
 std::ostream& operator<<(std::ostream& os, const Instance& o)

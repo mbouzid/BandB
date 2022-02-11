@@ -49,6 +49,22 @@ class Node
 			_priority(_._priority)
 		{}
 
+		uint16_t getT() const
+		{
+			return _t;
+		}
+
+		bool findInVisited(uint16_t i) const
+		{
+			return _visited.find(i) != _visited.cend();
+		}
+
+		const std::set<uint16_t>& getVisited()	const
+		{
+			return _visited;
+		}
+
+
 		static Node* dummyNode()
 		{
 			return new Node(-1, 0, 0, 0, 0, utils::emptySet(), utils::emptySet());
