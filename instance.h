@@ -16,7 +16,10 @@ class Instance
 	uint16_t* _e;
 	uint16_t* _E;
 
-	uint16_t _T;
+	size_t _T;
+	size_t _dmax;
+
+	int16_t ** _earliestCompletionTime;
 
 
 	// constructor
@@ -28,15 +31,19 @@ class Instance
 		uint16_t* w,
 		uint16_t* e,
 		uint16_t* E,
-		size_t T	
-	) :
+		size_t T,
+		size_t dmax,
+		int16_t ** earliestCompletionTime
+	):
 		_n(n),
 		_p(p),
 		_d(d),
 		_w(w),
 		_e(e),
 		_E(E),
-		_T(T)
+		_T(T),
+		_dmax(dmax),
+		_earliestCompletionTime(earliestCompletionTime)
 	{}
 
 	bool inRange_n(size_t idx) const
@@ -54,7 +61,9 @@ public:
 		_w((uint16_t*)calloc(_n, sizeof(uint16_t))),
 		_e((uint16_t*)calloc(_n, sizeof(uint16_t))),	
 		_E((uint16_t*)calloc(_n, sizeof(uint16_t))),
-		_T(_._T)
+		_T(_._T),
+		_dmax(_._dmax),
+		_earliestCompletionTime((int16_t**)calloc(_n,sizeof(int16_t*)))
 	{
 		memcpy(_p, _._p, sizeof(uint16_t) * (_n));
 		memcpy(_d, _._d, sizeof(uint16_t) * (_n));
@@ -62,6 +71,13 @@ public:
 		memcpy(_e, _._e, sizeof(uint16_t) * (_n));
 		memcpy(_E, _._E, sizeof(uint16_t) * _n);
 
+		memcpy(_earliestCompletionTime, _._earliestCompletionTime, sizeof(int16_t*) * _n);
+
+		for (size_t i(0); i < _n; ++i)
+		{
+			_earliestCompletionTime[i] = (int16_t*)calloc(_d[i]+1, sizeof(int16_t));
+			memcpy(_earliestCompletionTime[i], _._earliestCompletionTime[i], sizeof(int16_t) * (_dmax));
+		}
 	}
 
 	static Instance* load(const char* datname);
@@ -104,6 +120,18 @@ public:
 
 	}
 
+	size_t getDmax() const
+	{
+		return _dmax;
+	}
+
+	int16_t getEarliestCompletionTime(size_t i, size_t t) const
+	{
+		return _earliestCompletionTime[i][t];
+	}
+
+
+	uint16_t Heuristic1() const;
 
 
 	~Instance()
@@ -113,6 +141,7 @@ public:
 		delete _w;
 		delete _e;
 		delete _E;
+		delete [] _earliestCompletionTime;
 
 	}
 };
