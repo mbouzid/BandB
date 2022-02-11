@@ -85,3 +85,9 @@ std::ostream& utils::print(std::ostream& os, T* array, size_t n)
 	os << "}";
 	return os;
 }
+
+
+std::set<uint16_t> utils::emptySet()
+{
+	return std::set<uint16_t>();
+}

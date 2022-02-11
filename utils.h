@@ -1,7 +1,7 @@
 #pragma once
-#pragma once
 
 #include <vector>
+#include <set>
 #include <string>
 #include <random>
 #define NELEMS(x)  (sizeof(x) / sizeof((x)[0]))
@@ -21,6 +21,7 @@ namespace utils
 		EnergyPeriods,
 	};
 
+	std::set<uint16_t> 	emptySet();
 
 	std::vector <std::string> tokenize(const std::string& str, const std::string& delims);
 

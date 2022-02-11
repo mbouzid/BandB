@@ -1,8 +1,7 @@
 #pragma once
-#include "instance.h"
-#include <set>
+#include "utils.h"
 
-class node
+class Node
 {
 	private:
 
@@ -17,7 +16,7 @@ class node
 
 	public:
 
-		node
+		Node
 		(
 			uint16_t jobBranch,
 			uint16_t level,
@@ -39,7 +38,7 @@ class node
 			_priority = _level * _profit * _upperBound * _t;
 		}
 
-		node(const node & _ ):
+		Node(const Node & _ ):
 			_jobBranch(_._jobBranch),
 			_level(_._level),
 			_profit(_._profit),
@@ -50,17 +49,17 @@ class node
 			_priority(_._priority)
 		{}
 
-		node* dummyNode()
+		static Node* dummyNode()
 		{
-			return new node(-1, 0, 0, 0, 0, std::set<uint16_t>(), std::set<uint16_t>());
+			return new Node(-1, 0, 0, 0, 0, utils::emptySet(), utils::emptySet());
 		}
 
-		bool operator <(const node& _) const
+		bool operator <(const Node& _) const
 		{
 			return _priority < _._priority;
 		}
 
-		~node()
+		~Node()
 		{
 
 		}

@@ -1,5 +1,5 @@
 #include <cstdlib>
-#include "instance.h"
+#include "solver.h"
 
 int main(int argc, char* argv[])
 {
@@ -9,6 +9,10 @@ int main(int argc, char* argv[])
 		const char* datname("15orders_dL_20_dU_40_no_0.dat");
 
 		Instance* dat(Instance::load(datname));
+
+		Solver 	solver(dat);
+
+		solver.run();
 
 		delete dat;
 	}
