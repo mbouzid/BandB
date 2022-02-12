@@ -34,8 +34,7 @@ class Instance
 		uint16_t* e,
 		uint16_t* E,
 		size_t T,
-		size_t dmax,
-		int16_t ** earliestCompletionTime
+		size_t dmax	
 	):
 		_n(n),
 		_p(p),
@@ -45,8 +44,20 @@ class Instance
 		_E(E),
 		_T(T),
 		_dmax(dmax),
-		_earliestCompletionTime(earliestCompletionTime)
-	{}
+		_earliestCompletionTime((int16_t**)calloc(n, sizeof(int16_t*)))
+	{
+
+		for (size_t i(0); i < _n; ++i)
+		{
+			_earliestCompletionTime[i] = (int16_t*)calloc(_dmax+1, sizeof(int16_t));
+			for (size_t t(0); t <= dmax; ++t)
+			{
+				_earliestCompletionTime[i][t] = computeEarliestCompletionTime(i, t);
+			}
+		}
+
+	
+	}
 
 	bool inRange_n(size_t idx) const
 	{
@@ -76,31 +87,34 @@ protected:
 	}
 
 
+	int16_t computeEarliestCompletionTime(uint16_t i, size_t t) const;
+
+
 public:
 
 	Instance(const Instance& _) :
 		_n(_._n),
-		_p((uint16_t*)calloc(_n, sizeof(uint16_t))),
-		_d((uint16_t*)calloc(_n, sizeof(uint16_t))),  
-		_w((uint16_t*)calloc(_n, sizeof(uint16_t))),
-		_e((uint16_t*)calloc(_n, sizeof(uint16_t))),	
-		_E((uint16_t*)calloc(_n, sizeof(uint16_t))),
+		_p((uint16_t*)calloc(_._n, sizeof(uint16_t))),
+		_d((uint16_t*)calloc(_._n, sizeof(uint16_t))),  
+		_w((uint16_t*)calloc(_._n, sizeof(uint16_t))),
+		_e((uint16_t*)calloc(_._n, sizeof(uint16_t))),
+		_E((uint16_t*)calloc(_._n, sizeof(uint16_t))),
 		_T(_._T),
 		_dmax(_._dmax),
-		_earliestCompletionTime((int16_t**)calloc(_n,sizeof(int16_t*)))
+		_earliestCompletionTime((int16_t**)calloc(_._n,sizeof(int16_t*)))
 	{
-		memcpy(_p, _._p, sizeof(uint16_t) * (_n));
-		memcpy(_d, _._d, sizeof(uint16_t) * (_n));
-		memcpy(_w, _._w, sizeof(uint16_t) * (_n));
-		memcpy(_e, _._e, sizeof(uint16_t) * (_n));
-		memcpy(_E, _._E, sizeof(uint16_t) * _n);
+		memcpy(_p, _._p, sizeof(uint16_t) * _._n);
+		memcpy(_d, _._d, sizeof(uint16_t) * _._n);
+		memcpy(_w, _._w, sizeof(uint16_t) * _._n);
+		memcpy(_e, _._e, sizeof(uint16_t) * _._n);
+		memcpy(_E, _._E, sizeof(uint16_t) * _._n);
 
-		memcpy(_earliestCompletionTime, _._earliestCompletionTime, sizeof(int16_t*) * _n);
+		memcpy(_earliestCompletionTime, _._earliestCompletionTime, sizeof(int16_t*) * _._n);
 
 		for (size_t i(0); i < _n; ++i)
 		{
-			_earliestCompletionTime[i] = (int16_t*)calloc(_d[i]+1, sizeof(int16_t));
-			memcpy(_earliestCompletionTime[i], _._earliestCompletionTime[i], sizeof(int16_t) * (_dmax));
+			_earliestCompletionTime[i] = (int16_t*)calloc(_._dmax+1, sizeof(int16_t));
+			memcpy(_earliestCompletionTime[i], _._earliestCompletionTime[i], sizeof(int16_t) * _._dmax+1);
 		}
 	}
 

@@ -7,6 +7,35 @@
 #include <algorithm>
 #include <numeric>
 
+int16_t Instance::computeEarliestCompletionTime(uint16_t i, size_t t) const
+{
+	int16_t delta(-1);
+
+	if (t + _p[i] <= _d[i])
+	{
+		for (size_t tt(t); tt <= _d[i] - _p[i] + 1; ++tt)
+		{
+			bool energyConstraint(true);
+			for (size_t ttt(tt); ttt < tt + _p[i]; ++ttt)
+			{
+				if (_e[i] > _E[ttt])
+				{
+					energyConstraint = false;
+					break;
+				}
+			}
+
+			if (energyConstraint)
+			{
+				delta = tt + _p[i];
+				return delta;
+			}
+		}
+	}
+
+	return delta;
+}
+
 uint16_t Instance::Heuristic1()	const
 {
 
@@ -77,7 +106,7 @@ uint16_t Instance::DPUpperBound(size_t tinit, const std::set<uint16_t> & visited
 	
 	for (uint16_t i(0); i < _n; ++i)
 	{
-		if (visited.find(i) == visited.cend() and tinit + _p[i] < _d[i]+1 and _earliestCompletionTime[i][tinit] != -1 )
+		if ((visited.find(i) == visited.cend()) and (_d[i] + 1 >= tinit + _p[i]) and (_earliestCompletionTime[i][tinit] != -1) )
 		{
 			A.push_back(i);
 		}
@@ -102,37 +131,51 @@ uint16_t Instance::DPUpperBound(size_t tinit, const std::set<uint16_t> & visited
 	uint16_t i(*A.begin());
 	std::map < uint16_t, std::map<uint16_t, uint16_t> > f;
 
-	uint16_t k(0);
-	for (uint16_t j : A)
+	size_t k(0);
+	for (size_t ii(0); ii < A.size(); ++ii)
 	{
+		uint16_t j(A.at(ii));
+
 		uint16_t T(0);
 		if (f.find(j) == f.end())
 		{
-			f.emplace(j, std::map < uint16_t, uint16_t>());
+			f.emplace(j, std::map <uint16_t, uint16_t>());
 		}
 
 		if (j == i)
 		{
-			T = std::accumulate(_p+(k+1),_p+A.size(),0);
 
+
+			std::vector<uint16_t> sub(A.begin() + (k+1), A.end());
+			
+			for (uint16_t x : sub)
+			{
+				T += _p[x];
+			}
+			T += 1;
+		
 			for (size_t t(0); t < T; ++t)
 			{
-				if (tinit + _p[i] + t <= _d[i])
+				if (tinit + _p[j] + t <= _d[j])
 				{
-					f[i].emplace(t, _w[i]);
+					f[j].emplace(t, _w[j]);
 				}
 				else
 				{
-					f[i].emplace(t, 0);
+					f[j].emplace(t, 0);
 				}
 			}
 		}
 		else
 		{
-			T = std::accumulate(_p , _p + A.size() , 0);
+			for (uint16_t x : A)
+			{
+				T += _p[x];
+			}
+			T += 1;
 			for (size_t t(0); t < T; ++t)
 			{
-				f[i].emplace(t, 0);
+				f[j].emplace(t, 0);
 			}
 		}
 
@@ -144,14 +187,22 @@ uint16_t Instance::DPUpperBound(size_t tinit, const std::set<uint16_t> & visited
 	k = 1;
 	uint16_t jprev(i);
 
-	for (size_t j(1); j < A.size(); ++j)
+	for (size_t ii(1); ii < A.size(); ++ii)
 	{
-		uint16_t T = std::accumulate(_p+(k+1), _p + A.size(), 1);
+		uint16_t j(A.at(ii));
+
+		uint16_t T(0);
+		std::vector<uint16_t> sub(A.begin() + (k + 1), A.end());
+		for (uint16_t x : sub)
+		{
+			T += _p[x];
+		}
+		T += 1;
 
 		for (size_t t(0); t < T; ++t)
 		{
-			uint16_t PHI1 = 0;
-			uint16_t PHI2 = 0;
+			uint16_t PHI1(0);
+			uint16_t PHI2(0);
 
 			if (t + _p[j] + tinit <= _d[j])
 			{
@@ -162,8 +213,13 @@ uint16_t Instance::DPUpperBound(size_t tinit, const std::set<uint16_t> & visited
 				PHI1 = f[jprev][t + _p[j]];
 			}
 			
-			uint16_t sum2 = std::accumulate(_p, _p + (k + 1), 0);
-			
+			uint16_t sum2(0);
+			for (size_t l(0); l < k+1; ++l)
+			{
+				sum2 += _p[A.at(l)];
+			}
+
+
 			if (sum2 + t + tinit <= _d[j])
 			{
 				PHI2 = f[jprev][t] + _w[j];
@@ -184,13 +240,14 @@ uint16_t Instance::DPUpperBound(size_t tinit, const std::set<uint16_t> & visited
 		}
 
 
-		++k;
+		k++;
 		jprev = j;
 
 	}
 
 
-	uint16_t last(A.size() - 1);
+
+	uint16_t last(A.at(A.size() - 1));
 
 	return f[last][0];
 }
@@ -200,24 +257,24 @@ std::ostream& operator<<(std::ostream& os, const Instance& o)
 
 	os << "n=" << o.getN() << std::endl;
 	os << "p=";
-	for (size_t i(0); i <= o.getN(); ++i)
+	for (size_t i(0); i < o.getN(); ++i)
 		os << o.getP(i) << " ";
 	os << std::endl;
 	os << "d= ";
-	for (size_t i(0); i <= o.getN(); ++i)
+	for (size_t i(0); i < o.getN(); ++i)
 		os << o.getD(i) << " ";
 	os << std::endl;
 	os << "w= ";
-	for (size_t i(0); i <= o.getN(); ++i)
+	for (size_t i(0); i < o.getN(); ++i)
 		os << o.getW(i) << " ";
 	os << std::endl;
 	os << "e= ";
-	for (size_t i(0); i <= o.getN(); ++i)
+	for (size_t i(0); i < o.getN(); ++i)
 		os << o.getE(i) << " ";
 	os << std::endl;
 	os << "E= ";
-	for (size_t i(0); i < o.getN(); ++i)
-		os << o.getEE(i) << " ";
+	for (size_t t(0); t < o.getT(); ++t)
+		os << o.getEE(t) << " ";
 	os << std::endl;
 
 	return os << "";
@@ -341,54 +398,6 @@ Instance* Instance::load(const char* datname)
 
 	f.close();
 
-	earliestCompletionTime = (int16_t**)calloc(n, sizeof(int16_t*));
 
-
-
-	for (size_t i(0); i < n; ++i)
-	{
-		earliestCompletionTime[i] = (int16_t*)calloc(dmax, sizeof(int16_t));
-		for (size_t t(0); t < dmax; ++t)
-		{
-			earliestCompletionTime[i][t] = -1;
-			if (t + p[i] > d[i])
-			{
-				earliestCompletionTime[i][t] = -1;
-			}
-			else
-			{
-				for (size_t tt(t); tt < d[i] - p[i] + 1; ++tt)
-				{
-					bool energyConstraint(true);
-					for (size_t ttt(tt); ttt < tt + p[i] + 1; ++ttt)
-					{
-						if (e[i] > E[ttt])
-						{
-							energyConstraint = false;
-							break;
-						}
-					}
-
-					if (energyConstraint)
-					{
-						earliestCompletionTime[i][t] = tt + p[i];
-						break;
-					}
-				}
-			}
-
-		}
-	}
-
-	/*for (size_t i(0); i < n; ++i)
-	{
-		for (size_t t(0); t < dmax; ++t)
-		{
-
-			std::cout << "i=" << i << ",t=" << t << " : " << earliestCompletionTime[i][t] << std::endl;
-		}
-	}*/
-
-
-	return new Instance(n, p, d, w, e, E, T, dmax,earliestCompletionTime);
+	return new Instance(n, p, d, w, e, E, T, dmax);
 }

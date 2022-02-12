@@ -8,9 +8,10 @@ void Solver::run()
 	uint16_t maxProfit(_instance->Heuristic1());
 	_queue.push(Node(-1, 0, 0, 0, 0, utils::emptySet(), utils::emptyVector()));
 
+
 	while (not _queue.empty())
 	{
-		Node u = _queue.top();
+		Node u (_queue.top());
 
 		//std::cout << "priority=" << u.getPriority() << " ";
 		//std::cout << "j=" << u.getJob() << " ,t=" << u.getT() << " ,ub=" << u.getUpperBound() << " ,profit=" << u.getProfit() << ", seq=";
@@ -19,7 +20,17 @@ void Solver::run()
 
 		_queue.pop();
 
-		std::vector<uint16_t> A;
+		for (uint16_t i(0); i < _instance->getN(); ++i)
+		{
+			if (not u.findInVisited(i))
+			{
+				if (_instance->getEarliestCompletionTime(i, u.getT()) == -1 )
+				{
+					u.addToVisited(i);
+				 }
+			}
+		}
+		std::vector<uint16_t> A;		
 
 		for (uint16_t i(0); i < _instance->getN(); ++i)
 		{
@@ -37,22 +48,18 @@ void Solver::run()
 		{
 
 			uint16_t j(A.at(k));   				
-			//std::cout << "j=" << j << std::endl;
 
 			int16_t earliestEndtime(_instance->getEarliestCompletionTime(j, u.getT()));
 
-			if (earliestEndtime == -1 or earliestEndtime >= _instance->getD(j) + 1)
-			{
-				u.addToVisited(j);
-				continue;
-			}
-			//std::cout << "branch " << std::endl;
+			
 
 			uint16_t profit(u.getProfit());
-			uint16_t upperBound(u.getUpperBound());
+			uint16_t upperBound(0);
 			uint16_t t(u.getT());
 
 			std::set<uint16_t> visited(u.getVisited());
+
+
 			std::vector<uint16_t> sequence(u.getSequence());
 
 
@@ -62,20 +69,24 @@ void Solver::run()
 				profit += _instance->getW(j);
 				sequence.push_back(j);
 				visited.insert(j);
-				upperBound = profit + _instance->DPUpperBound(u.getT(), u.getVisited());
+				
+				upperBound = profit + _instance->DPUpperBound(t, visited);
 
 			}
 			else
 			{
+				upperBound = profit;
 				visited.insert(j);
 				u.addToVisited(j);
-				std::cout << "not extended" << std::endl;
+				//std::cout << "not extended" << std::endl;
 			}
+
+			//std::cout << "maxProfit=" << maxProfit << ",profit=" << profit << ",ub=" << upperBound << std::endl;
 
 			if (profit > maxProfit)
 			{
 				maxProfit = profit;
-				std::cout << "maxProfit=" << maxProfit << std::endl;
+				//std::cout << "maxProfit=" << maxProfit << std::endl;
 			}
 
 
@@ -88,6 +99,6 @@ void Solver::run()
 
 	}	   
 	
-	std::cout <<  maxProfit << " ";
+	std::cout << maxProfit << " ";
 
 }

@@ -14,6 +14,7 @@ int main(int argc, char* argv[])
 
 		Solver 	solver(dat);
 
+
 		auto start = std::chrono::system_clock::now();
 		solver.run();
 		auto end = std::chrono::system_clock::now();
@@ -22,7 +23,6 @@ int main(int argc, char* argv[])
 		std::time_t end_time = std::chrono::system_clock::to_time_t(end);
 
 		std::cout << elapsed_seconds.count() << std::endl;
-
 
 		delete dat;
 	}
