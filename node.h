@@ -11,7 +11,7 @@ class Node
 		uint16_t _upperBound;
 		uint16_t _t;
 		std::set<uint16_t> _visited;
-		std::set<uint16_t> _sequence;
+		std::vector<uint16_t> _sequence;
 		uint16_t _priority;
 
 	public:
@@ -24,7 +24,7 @@ class Node
 			uint16_t upperBound,
 			uint16_t t,
 			const std::set<uint16_t> & visited,
-			const std::set<uint16_t> & sequence
+			const std::vector<uint16_t> & sequence
 		) :
 			_jobBranch(jobBranch),
 			_level(level),
@@ -69,6 +69,10 @@ class Node
 			return _upperBound;
 		}
 
+		uint16_t getPriority() const
+		{
+			return _priority;
+		}
 
 		uint16_t getT() const
 		{
@@ -82,6 +86,12 @@ class Node
 			return _visited.find(i) != _visited.cend();
 		}
 
+		bool findInSequence(uint16_t i) const
+		{
+			return std::find(_sequence.cbegin(), _sequence.cend(), i) != _sequence.cend();
+		}
+
+
 		void addToVisited(uint16_t i)
 		{
 			_visited.insert(i);
@@ -92,19 +102,24 @@ class Node
 			return _visited;
 		}
 
-		const std::set<uint16_t>& getSequence()	const
+		const std::vector<uint16_t>& getSequence()	const
 		{
 			return _sequence;
 		}
 
 		static Node* dummyNode()
 		{
-			return new Node(-1, 0, 0, 0, 0, utils::emptySet(), utils::emptySet());
+			return new Node(-1, 0, 0, 0, 0, utils::emptySet(), utils::emptyVector());
 		}
 
 		bool operator <(const Node& _) const
 		{
 			return _priority < _._priority;
+		}
+
+		bool operator >(const Node& _) const
+		{
+			return _priority > _._priority;
 		}
 
 		~Node()

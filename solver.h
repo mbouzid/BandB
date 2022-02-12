@@ -12,7 +12,7 @@ class Solver
 	private:
 
 	Instance* _instance;
-	std::priority_queue<Node, std::vector<Node>, std::less<Node>> _queue;
+	std::priority_queue<Node, std::vector<Node>, std::greater<Node>> _queue;
 
 
 	public:

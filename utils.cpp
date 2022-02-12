@@ -86,8 +86,39 @@ std::ostream& utils::print(std::ostream& os, T* array, size_t n)
 	return os;
 }
 
+template<class T>
+std::ostream& utils::print(std::ostream& os, const std::vector<T>& v)
+{
+	for (const T& t : v)
+	{
+		os << t << " ";
+	}
+	return os;
+	
+}
+
+template<class T>
+std::ostream& utils::print(std::ostream& os, const std::set<T>& s)
+{
+	for (const T& t : s)
+	{
+		os << t << " ";
+	}
+	return os;
+
+}
+
 
 std::set<uint16_t> utils::emptySet()
 {
 	return std::set<uint16_t>();
 }
+
+std::vector<uint16_t> utils::emptyVector()
+{
+	return std::vector<uint16_t>();
+}
+
+
+template std::ostream& utils::print<uint16_t>(std::ostream& os, const std::vector<uint16_t>& v);
+template std::ostream& utils::print<uint16_t>(std::ostream& os, const std::set<uint16_t>& v);

@@ -129,7 +129,7 @@ uint16_t Instance::DPUpperBound(size_t tinit, const std::set<uint16_t> & visited
 		}
 		else
 		{
-			T = std::accumulate(_p , _p + _n , 0);
+			T = std::accumulate(_p , _p + A.size() , 0);
 			for (size_t t(0); t < T; ++t)
 			{
 				f[i].emplace(t, 0);

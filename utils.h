@@ -22,6 +22,7 @@ namespace utils
 	};
 
 	std::set<uint16_t> 	emptySet();
+	std::vector<uint16_t> emptyVector();
 
 	std::vector <std::string> tokenize(const std::string& str, const std::string& delims);
 
@@ -33,6 +34,9 @@ namespace utils
 	OptionsParams resolveOption(const std::string input);
 
 	template<class T> std::ostream& print(std::ostream& os, T* array, size_t n);
+	template<class T> std::ostream& print(std::ostream& os, const std::vector<T>&);
+	template<class T> std::ostream& print(std::ostream& os, const std::set<T>&);
+
 
 
 	void cleanVector(std::vector <std::string>& v);
