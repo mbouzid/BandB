@@ -3,6 +3,8 @@
 #include "instance.h"
 #include "node.h"
 #include <queue>
+#include <omp.h>
+
 
 
 class Solver
@@ -10,7 +12,7 @@ class Solver
 	private:
 
 	Instance* _instance;
-	std::queue<Node*> _queue;
+	std::priority_queue<Node, std::vector<Node>, std::less<Node>> _queue;
 
 
 	public:
