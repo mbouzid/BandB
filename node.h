@@ -5,11 +5,11 @@ class Node
 {
 	private:
 
-		uint16_t _jobBranch;
+		int16_t _jobBranch;
 		uint16_t _level;
 		uint16_t _profit;
 		uint16_t _upperBound;
-		uint16_t _t;
+		int16_t _t;
 		std::set<uint16_t> _visited;
 		std::vector<uint16_t> _sequence;
 		uint16_t _priority;

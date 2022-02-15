@@ -4,6 +4,7 @@
 #include <map>
 #include <vector>
 #include <set>
+#include "utils.h"
 
 class Instance
 {
@@ -68,7 +69,7 @@ protected:
 
 	void computeRatio(std::map<uint16_t, double>& ratio, const std::vector <uint16_t> & orders, size_t t)	const
 	{
-		for (size_t i : orders)
+		for (uint16_t i : orders)
 		{
 			int16_t C(_earliestCompletionTime[i][t]);
 
@@ -77,17 +78,17 @@ protected:
 				ratio.emplace(i, -1);
 			}
 			
-			if (C == -1)
-				ratio[i] = -1;
-			else
-				ratio[i] = ((double)_d[i] - (double)_earliestCompletionTime[i][t]) / (double)_w[i];
+			if (C != -1)
+				ratio[i] = ((double)C)/ (double)_w[i];
 			
 		}
+		
 
 	}
 
 
 	int16_t computeEarliestCompletionTime(uint16_t i, size_t t) const;
+	uint16_t energyMinimalInInterval(size_t a, size_t b) const;
 
 
 public:
@@ -169,7 +170,12 @@ public:
 	}
 
 
-	uint16_t Heuristic1() const;
+	utils::Matrix DP(std::vector<uint16_t>& A, size_t a, size_t b) const;
+	std::vector<uint16_t> Heuristic1() const;
+	std::vector<uint16_t> Heuristic2() const;
+	std::vector<uint16_t> Heuristic3() const;
+
+	uint16_t computeProfit(const std::vector <uint16_t> & ) const;
 
 	uint16_t DPUpperBound(size_t tinit, const std::set<uint16_t>& visited) const;
 
@@ -184,6 +190,11 @@ public:
 		delete [] _earliestCompletionTime;
 
 	}
+
+	void printSequence(const std::vector<uint16_t>& seq) const;
+
+	void printEarliestCompletionTimes() const;
+
 };
 
 

@@ -5,20 +5,24 @@
 void Solver::run()
 {
 
-	uint16_t maxProfit(_instance->Heuristic1());
+	std::vector < std::vector<uint16_t> > heuristics = { _instance->Heuristic1()  , _instance->Heuristic2(), _instance->Heuristic3() };
+	
+	std::vector<uint16_t> bestSequence(*std::max_element(heuristics.begin(), heuristics.end(),
+		[this](const std::vector<uint16_t>& x, const std::vector<uint16_t>& y){ return _instance->computeProfit(x) <= _instance->computeProfit(y); }));
+
+	uint16_t maxProfit(_instance->computeProfit(bestSequence));	
+
+
 	_queue.push(Node(-1, 0, 0, 0, 0, utils::emptySet(), utils::emptyVector()));
 
+	std::cout << maxProfit << " " ;
 
+	
 	while (not _queue.empty())
 	{
 		Node u (_queue.top());
-
-		//std::cout << "priority=" << u.getPriority() << " ";
-		//std::cout << "j=" << u.getJob() << " ,t=" << u.getT() << " ,ub=" << u.getUpperBound() << " ,profit=" << u.getProfit() << ", seq=";
-		/*utils::print<uint16_t>(std::cout, u.getSequence());
-		std::cout << std::endl;*/
-
 		_queue.pop();
+
 
 		for (uint16_t i(0); i < _instance->getN(); ++i)
 		{
@@ -34,15 +38,11 @@ void Solver::run()
 
 		for (uint16_t i(0); i < _instance->getN(); ++i)
 		{
-			if ( i != u.getJob() and not u.findInVisited(i) and not u.findInSequence(i) and _instance->getEarliestCompletionTime(i, u.getT()) != -1)
+			if ( i != u.getJob() and not u.findInVisited(i) and not u.findInSequence(i))
 			{
 				A.push_back(i);
 			}
 		}
-
-		/*std::cout << "A=";
-		utils::print<uint16_t>(std::cout, A);
-		std::cout << std::endl;	*/
 
 		for (int k(0); k < A.size(); ++k)
 		{
@@ -63,8 +63,8 @@ void Solver::run()
 			std::vector<uint16_t> sequence(u.getSequence());
 
 
-			if (earliestEndtime != -1)
-			{
+			/*if (earliestEndtime != -1)
+			{*/
 				t = earliestEndtime;
 				profit += _instance->getW(j);
 				sequence.push_back(j);
@@ -72,21 +72,19 @@ void Solver::run()
 				
 				upperBound = profit + _instance->DPUpperBound(t, visited);
 
-			}
+			/*}
 			else
 			{
 				upperBound = profit;
 				visited.insert(j);
 				u.addToVisited(j);
-				//std::cout << "not extended" << std::endl;
-			}
+			}*/
 
-			//std::cout << "maxProfit=" << maxProfit << ",profit=" << profit << ",ub=" << upperBound << std::endl;
 
 			if (profit > maxProfit)
 			{
 				maxProfit = profit;
-				//std::cout << "maxProfit=" << maxProfit << std::endl;
+				bestSequence = sequence;
 			}
 
 
@@ -99,6 +97,9 @@ void Solver::run()
 
 	}	   
 	
-	std::cout << maxProfit << " ";
+	std::cout << " " << maxProfit << " [";
+	utils::print<uint16_t>(std::cout, bestSequence);		 
+	std::cout << "] ";		 
+
 
 }
