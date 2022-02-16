@@ -1,23 +1,41 @@
 #include "solver.h"
 #include <set>
+#include <iostream>
+#include <fstream>
 
+
+#include <chrono>
+#include <ctime>
 
 void Solver::run()
 {
 
-	std::vector < std::vector<uint16_t> > heuristics = { _instance->Heuristic1()  , _instance->Heuristic2(), _instance->Heuristic3() };
+	//auto start = std::chrono::system_clock::now();
+
+	std::vector < std::vector<uint16_t> > heuristics = { _instance->Heuristic1()  , _instance->Heuristic2() , _instance->Heuristic3() };
 	
 	std::vector<uint16_t> bestSequence(*std::max_element(heuristics.begin(), heuristics.end(),
 		[this](const std::vector<uint16_t>& x, const std::vector<uint16_t>& y){ return _instance->computeProfit(x) <= _instance->computeProfit(y); }));
 
 	uint16_t maxProfit(_instance->computeProfit(bestSequence));	
-
+	
 
 	_queue.push(Node(-1, 0, 0, 0, 0, utils::emptySet(), utils::emptyVector()));
 
-	std::cout << maxProfit << " " ;
+	for (size_t k(0); k < heuristics.size(); ++k)
+		std::cout << _instance->computeProfit(heuristics.at(k)) << " ";
 
+
+	//std::ofstream f("save.out");
 	
+	/*auto end = std::chrono::system_clock::now();
+
+	std::chrono::duration<double> elapsed_seconds = end - start;
+	std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+
+	f << elapsed_seconds.count() << " "<< maxProfit << std::endl;
+	start = std::chrono::system_clock::now();  */
+
 	while (not _queue.empty())
 	{
 		Node u (_queue.top());
@@ -85,6 +103,13 @@ void Solver::run()
 			{
 				maxProfit = profit;
 				bestSequence = sequence;
+
+				/*auto end = std::chrono::system_clock::now();
+
+				std::chrono::duration<double> elapsed_seconds = end - start;
+				std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+
+				f << elapsed_seconds.count() << " " << maxProfit << std::endl; */
 			}
 
 
@@ -97,9 +122,17 @@ void Solver::run()
 
 	}	   
 	
-	std::cout << " " << maxProfit << " [";
+	std::cout << " " << maxProfit << " \"[";
 	utils::print<uint16_t>(std::cout, bestSequence);		 
-	std::cout << "] ";		 
+	std::cout << "]\" ";		 
 
+
+	/*auto end1 = std::chrono::system_clock::now();
+
+	std::chrono::duration<double> elapsed_seconds1 = end1 - start;
+	std::time_t end_time1 = std::chrono::system_clock::to_time_t(end1);
+
+	f << elapsed_seconds1.count() << " " << maxProfit << std::endl;
+	f.close();*/
 
 }

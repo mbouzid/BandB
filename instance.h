@@ -19,8 +19,8 @@ class Instance
 	uint16_t* _e;
 	uint16_t* _E;
 
-	size_t _T;
-	size_t _dmax;
+	uint16_t _T;
+	uint16_t _dmax;
 
 	int16_t ** _earliestCompletionTime;
 
@@ -34,8 +34,8 @@ class Instance
 		uint16_t* w,
 		uint16_t* e,
 		uint16_t* E,
-		size_t T,
-		size_t dmax	
+		uint16_t T,
+		uint16_t dmax
 	):
 		_n(n),
 		_p(p),
@@ -51,7 +51,7 @@ class Instance
 		for (size_t i(0); i < _n; ++i)
 		{
 			_earliestCompletionTime[i] = (int16_t*)calloc(_dmax+1, sizeof(int16_t));
-			for (size_t t(0); t <= dmax; ++t)
+			for (uint16_t t(0); t <= _dmax; ++t)
 			{
 				_earliestCompletionTime[i][t] = computeEarliestCompletionTime(i, t);
 			}
@@ -60,14 +60,14 @@ class Instance
 	
 	}
 
-	bool inRange_n(size_t idx) const
+	bool inRange_n(uint16_t idx) const
 	{
 		return ((0 >= idx) and (idx <= _n));
 	}
 
 protected:
 
-	void computeRatio(std::map<uint16_t, double>& ratio, const std::vector <uint16_t> & orders, size_t t)	const
+	void computeRatio(std::map<uint16_t, double>& ratio, const std::vector <uint16_t> & orders, uint16_t t)	const
 	{
 		for (uint16_t i : orders)
 		{
@@ -87,8 +87,8 @@ protected:
 	}
 
 
-	int16_t computeEarliestCompletionTime(uint16_t i, size_t t) const;
-	uint16_t energyMinimalInInterval(size_t a, size_t b) const;
+	int16_t computeEarliestCompletionTime(uint16_t i, uint16_t t) const;
+	uint16_t energyMinimalInInterval(uint16_t a, uint16_t b) const;
 
 
 public:
@@ -121,7 +121,7 @@ public:
 
 	static Instance* load(const char* datname);
 
-	size_t getT() const
+	uint16_t getT() const
 	{
 		return _T;
 	}
@@ -159,7 +159,7 @@ public:
 
 	}
 
-	size_t getDmax() const
+	uint16_t getDmax() const
 	{
 		return _dmax;
 	}
@@ -170,14 +170,14 @@ public:
 	}
 
 
-	utils::Matrix DP(std::vector<uint16_t>& A, size_t a, size_t b) const;
+	utils::Matrix DP(std::vector<uint16_t>& A, uint16_t a, uint16_t b) const;
 	std::vector<uint16_t> Heuristic1() const;
 	std::vector<uint16_t> Heuristic2() const;
 	std::vector<uint16_t> Heuristic3() const;
 
 	uint16_t computeProfit(const std::vector <uint16_t> & ) const;
 
-	uint16_t DPUpperBound(size_t tinit, const std::set<uint16_t>& visited) const;
+	uint16_t DPUpperBound(uint16_t tinit, const std::set<uint16_t>& visited) const;
 
 
 	~Instance()

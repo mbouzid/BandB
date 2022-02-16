@@ -7,18 +7,21 @@
 #include <algorithm>
 #include <numeric>
 
-int16_t Instance::computeEarliestCompletionTime(uint16_t i, size_t t) const
+int16_t Instance::computeEarliestCompletionTime(uint16_t i, uint16_t t) const
 {
 	int16_t delta(-1);
 				   
+	if (t > _d[i])
+		return delta;
+
 	if (t > _d[i]-_p[i] +1)
 		return delta;
 
 
-	for (size_t tt(t); tt <= _d[i]-_p[i]+1; tt++)
+	for (uint16_t tt(t); tt <= _d[i]-_p[i]+1; tt++)
 	{
 		bool energyConstraint(true);
-		for (size_t ttt(tt); ttt < tt + _p[i]; ttt++)
+		for (uint16_t ttt(tt); ttt < tt + _p[i]; ttt++)
 		{
 			if (_e[i] > _E[ttt])
 			{
@@ -31,6 +34,7 @@ int16_t Instance::computeEarliestCompletionTime(uint16_t i, size_t t) const
 		
 		if (energyConstraint)
 		{
+			
 			delta = tt + _p[i];
 			return delta;
 		}
@@ -39,12 +43,12 @@ int16_t Instance::computeEarliestCompletionTime(uint16_t i, size_t t) const
 	return delta;
 }
 
-uint16_t Instance::energyMinimalInInterval(size_t a, size_t b) const
+uint16_t Instance::energyMinimalInInterval(uint16_t a, uint16_t b) const
 {
 	return *std::min_element(_E+a,_E+b);
 }
 
-utils::Matrix Instance::DP(std::vector<uint16_t>& A, size_t a, size_t b) const
+utils::Matrix Instance::DP(std::vector<uint16_t>& A, uint16_t a, uint16_t b) const
 {
 	if (A.empty())
 		return utils::Matrix();
@@ -83,7 +87,7 @@ utils::Matrix Instance::DP(std::vector<uint16_t>& A, size_t a, size_t b) const
 			}
 			T += 1;
 
-			for (size_t t(0); t <= T; ++t)
+			for (uint16_t t(0); t <= T; ++t)
 			{
 				if (a + _p[j] + t <= std::min((uint16_t)b,(uint16_t)(_d[j]+1)))
 				{
@@ -102,7 +106,7 @@ utils::Matrix Instance::DP(std::vector<uint16_t>& A, size_t a, size_t b) const
 				T += _p[x];
 			}
 			T += 1;
-			for (size_t t(0); t <= T; ++t)
+			for (uint16_t t(0); t <= T; ++t)
 			{
 				f[j].emplace(t, 0);
 			}
@@ -129,7 +133,7 @@ utils::Matrix Instance::DP(std::vector<uint16_t>& A, size_t a, size_t b) const
 		}
 		T += 1;
 
-		for (size_t t(0); t <= T; ++t)
+		for (uint16_t t(0); t <= T; ++t)
 		{
 			uint16_t PHI1(0);
 			uint16_t PHI2(0);
@@ -246,23 +250,23 @@ std::vector<uint16_t> Instance::Heuristic1() const
 }
 
 std::vector<uint16_t> Instance::Heuristic2() const
-{						   
+{					
+
 	std::set<uint16_t> L;
 	for (uint16_t i(0); i < _n; ++i)
 	{
 		L.insert(i);
 	}
 
-
-	uint16_t pmax(*std::max_element(_p, _p + _n)-1);
+	uint16_t pmax(*std::max_element(_p, _p + _n));
 	uint16_t profit(0);
 
-	size_t a(0), b(pmax - 1);
+	uint16_t a(0), b(pmax - 1);
 	std::vector<uint16_t> seq;
 
 	while (b <= _dmax)
 	{
-		uint16_t Emin(energyMinimalInInterval(a, b+1));
+		uint16_t Emin(energyMinimalInInterval(a, b));
 
 		std::vector<uint16_t> A;
 		for (uint16_t i : L)
@@ -380,7 +384,7 @@ uint16_t Instance::computeProfit(const std::vector<uint16_t>& seq) const
 
 
 
-uint16_t Instance::DPUpperBound(size_t tinit, const std::set<uint16_t> & visited) const
+uint16_t Instance::DPUpperBound(uint16_t tinit, const std::set<uint16_t> & visited) const
 {
 	if (visited.size() == _n)
 	{
@@ -427,7 +431,7 @@ void Instance::printSequence(const std::vector<uint16_t>& seq) const
 
 	uint16_t t(0);
 	std::vector<uint16_t> L(seq);
-	while (t <= _dmax)
+	while (t <= _dmax+1)
 	{
 		if (not seq.empty())
 		{
@@ -512,9 +516,9 @@ Instance* Instance::load(const char* datname)
 	std::ifstream f(datname);
 	std::string line;
 
-	size_t n(0), T(0), dmax(0);
+	size_t n(0);
+	uint16_t T(0), dmax(0);
 	uint16_t* p = nullptr, * d = nullptr, * w = nullptr, * e = nullptr, * E = nullptr;
-	int16_t **earliestCompletionTime = nullptr;
 
 
 	while (std::getline(f, line))
@@ -528,9 +532,11 @@ Instance* Instance::load(const char* datname)
 			utils::trim(paramName);
 
 			std::getline(iss, values, ';');
+
 			std::vector<std::string> tokens(utils::tokenize(values, { '[',',',']' }));
 
 			utils::cleanVector(tokens);
+
 
 
 			switch (utils::resolveOption(paramName))
@@ -539,7 +545,7 @@ Instance* Instance::load(const char* datname)
 			case  utils::OptionsParams::OrderNb:
 			{
 				n = atoi(values.c_str());
-				T = (n * PMAX) -1;	
+				T = (n * PMAX) -1 ;	
 				break;
 			}
 
@@ -577,7 +583,6 @@ Instance* Instance::load(const char* datname)
 				for (size_t i(0); i < n; ++i)
 				{
 					w[i] = atoi(tokens.at(i).c_str());
-
 				}
 
 				break;
@@ -600,10 +605,9 @@ Instance* Instance::load(const char* datname)
 			{
 				E = (uint16_t*)calloc(T, sizeof(uint16_t));
 
-				for (size_t t(0); t < T; ++t)
+				for (uint16_t t(0); t < T; ++t)
 				{
 					E[t] = atoi(tokens.at(t).c_str());
-
 				}
 
 				break;
