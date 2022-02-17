@@ -36,11 +36,12 @@ void Solver::run()
 	f << elapsed_seconds.count() << " "<< maxProfit << std::endl;
 	start = std::chrono::system_clock::now();  */
 
-	while (not _queue.empty())
-	{
-		Node u (_queue.top());
-		_queue.pop();
 
+	while (not _queue.empty())
+	{	   
+#
+		Node u(_queue.top());
+		_queue.pop();
 
 		for (uint16_t i(0); i < _instance->getN(); ++i)
 		{
@@ -62,9 +63,9 @@ void Solver::run()
 			}
 		}
 
+		#pragma omp parallel for shared(maxProfit), num_threads(4)
 		for (int k(0); k < A.size(); ++k)
 		{
-
 			uint16_t j(A.at(k));   				
 
 			int16_t earliestEndtime(_instance->getEarliestCompletionTime(j, u.getT()));
@@ -81,8 +82,6 @@ void Solver::run()
 			std::vector<uint16_t> sequence(u.getSequence());
 
 
-			/*if (earliestEndtime != -1)
-			{*/
 				t = earliestEndtime;
 				profit += _instance->getW(j);
 				sequence.push_back(j);
@@ -90,33 +89,21 @@ void Solver::run()
 				
 				upperBound = profit + _instance->DPUpperBound(t, visited);
 
-			/*}
-			else
-			{
-				upperBound = profit;
-				visited.insert(j);
-				u.addToVisited(j);
-			}*/
-
-
 			if (profit > maxProfit)
 			{
 				maxProfit = profit;
 				bestSequence = sequence;
-
-				/*auto end = std::chrono::system_clock::now();
-
-				std::chrono::duration<double> elapsed_seconds = end - start;
-				std::time_t end_time = std::chrono::system_clock::to_time_t(end);
-
-				f << elapsed_seconds.count() << " " << maxProfit << std::endl; */
 			}
 
 
-			if (upperBound > maxProfit)
+			#pragma omp critical
 			{
-				_queue.push(Node(j, u.getLevel() + 1, profit, upperBound, t, visited, sequence));
+				if (upperBound > maxProfit)
+				{
 
+					_queue.push(Node(j, u.getLevel() + 1, profit, upperBound, t, visited, sequence));
+
+				}
 			}
 		}
 

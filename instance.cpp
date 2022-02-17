@@ -525,12 +525,12 @@ uint16_t Instance::DPUpperBound(uint16_t tinit, const std::set<uint16_t> & visit
 	}
 
 
-	utils::Matrix f(DP1(A, tinit, _dmax+1));
+	utils::Matrix f(DP(A, tinit, _dmax+1));
 
 
 	uint16_t last(A.at(A.size() - 1));
 
-	return f.at(last).at(tinit);
+	return f.at(last).at(0);
 }
 
 void Instance::printSequence(const std::vector<uint16_t>& seq) const
