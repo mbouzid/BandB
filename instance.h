@@ -171,6 +171,8 @@ public:
 
 
 	utils::Matrix DP(std::vector<uint16_t>& A, uint16_t a, uint16_t b) const;
+
+	utils::Matrix DP1(std::vector<uint16_t>& A, uint16_t a, uint16_t b) const;
 	std::vector<uint16_t> Heuristic1() const;
 	std::vector<uint16_t> Heuristic2() const;
 	std::vector<uint16_t> Heuristic3() const;

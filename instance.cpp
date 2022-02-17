@@ -48,6 +48,7 @@ uint16_t Instance::energyMinimalInInterval(uint16_t a, uint16_t b) const
 	return *std::min_element(_E+a,_E+b);
 }
 
+/* @deprecated */
 utils::Matrix Instance::DP(std::vector<uint16_t>& A, uint16_t a, uint16_t b) const
 {
 	if (A.empty())
@@ -182,6 +183,123 @@ utils::Matrix Instance::DP(std::vector<uint16_t>& A, uint16_t a, uint16_t b) con
 	return f;
 }
 
+utils::Matrix Instance::DP1(std::vector<uint16_t>& A, uint16_t a, uint16_t b) const
+{
+	if (A.empty())
+		return utils::Matrix();
+
+	// sort by LDD
+	std::sort
+	(
+		A.begin(), A.end(),
+		[this](uint16_t i, uint16_t j)
+		{
+			return _d[i] > _d[j];
+		}
+	);
+
+	uint16_t i(*A.begin());
+	std::map < uint16_t, std::map<uint16_t, uint16_t> > f;
+
+	size_t k(0);
+	for (size_t ii(0); ii < A.size(); ++ii)
+	{
+		uint16_t j(A.at(ii));
+		uint16_t T(0);
+		for (uint16_t x : A)
+		{
+			T += _p[x];
+		}
+
+		if (f.find(j) == f.end())
+		{
+			f.emplace(j, std::map <uint16_t, uint16_t>());
+		}
+
+		if (j == i)
+		{
+
+			for (uint16_t t(a); t <= b; ++t)
+			{
+				if (t  + _p[j] <= _d[j] + 1)
+				{
+					f[j].emplace(t, _w[j]);
+				}
+				else
+				{
+					f[j].emplace(t, 0);
+				}
+			}
+		}
+		else
+		{
+			for (uint16_t t(a); t <= b; ++t)
+			{
+				f[j].emplace(t, 0);
+			}
+		}
+
+
+	}
+
+
+
+	k = 1;
+	uint16_t jprev(i);
+
+	for (size_t ii(1); ii < A.size(); ++ii)
+	{
+		uint16_t j(A.at(ii));
+
+		for (uint16_t t(a); t <= b-_p[j]; ++t)
+		{
+			uint16_t PHI1(0);
+			uint16_t PHI2(0);
+
+			if (t + _p[j]  <= _d[j] + 1)
+			{
+				PHI1 = _w[j] + f[jprev][t + _p[j]];
+			}
+			else
+			{
+				PHI1 = f[jprev][t + _p[j]];
+			}
+
+			uint16_t sum2(0);
+			for (size_t l(0); l < k + 1; ++l)
+			{
+				sum2 += _p[A.at(l)];
+			}
+
+
+			if (sum2 + t <= _d[j] + 1)
+			{
+				PHI2 = f[jprev][t] + _w[j];
+			}
+			else
+			{
+				PHI2 = f[jprev][t];
+			}
+
+			if (PHI1 < PHI2)
+			{
+				f[j][t] = PHI2;
+			}
+			else
+			{
+				f[j][t] = PHI1;
+			}
+		}
+
+
+		k++;
+		jprev = j;
+
+	}
+
+	return f;
+}
+
 std::vector<uint16_t> Instance::Heuristic1() const
 {
 	int16_t t(0);
@@ -277,7 +395,7 @@ std::vector<uint16_t> Instance::Heuristic2() const
 			}
 		}
 
-		utils::Matrix f(DP(A, a, b));
+		utils::Matrix f(DP1(A, a, b));
 		
 		if (not f.empty())
 		{
@@ -407,12 +525,12 @@ uint16_t Instance::DPUpperBound(uint16_t tinit, const std::set<uint16_t> & visit
 	}
 
 
-	utils::Matrix f(DP(A, tinit, _dmax+1));
+	utils::Matrix f(DP1(A, tinit, _dmax+1));
 
 
 	uint16_t last(A.at(A.size() - 1));
 
-	return f[last][0];
+	return f.at(last).at(tinit);
 }
 
 void Instance::printSequence(const std::vector<uint16_t>& seq) const
