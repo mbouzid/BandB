@@ -63,7 +63,7 @@ void Solver::run()
 			}
 		}
 
-		#pragma omp parallel for shared(maxProfit), num_threads(4)
+		#pragma omp parallel for shared(maxProfit), num_threads(8)
 		for (int k(0); k < A.size(); ++k)
 		{
 			uint16_t j(A.at(k));   				

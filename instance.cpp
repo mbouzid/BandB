@@ -48,7 +48,6 @@ uint16_t Instance::energyMinimalInInterval(uint16_t a, uint16_t b) const
 	return *std::min_element(_E+a,_E+b);
 }
 
-/* @deprecated */
 utils::Matrix Instance::DP(std::vector<uint16_t>& A, uint16_t a, uint16_t b) const
 {
 	if (A.empty())
@@ -201,16 +200,11 @@ utils::Matrix Instance::DP1(std::vector<uint16_t>& A, uint16_t a, uint16_t b) co
 	uint16_t i(*A.begin());
 	std::map < uint16_t, std::map<uint16_t, uint16_t> > f;
 
-	size_t k(0);
+	uint16_t k(0);
 	for (size_t ii(0); ii < A.size(); ++ii)
 	{
 		uint16_t j(A.at(ii));
-		uint16_t T(0);
-		for (uint16_t x : A)
-		{
-			T += _p[x];
-		}
-
+		
 		if (f.find(j) == f.end())
 		{
 			f.emplace(j, std::map <uint16_t, uint16_t>());
@@ -218,22 +212,43 @@ utils::Matrix Instance::DP1(std::vector<uint16_t>& A, uint16_t a, uint16_t b) co
 
 		if (j == i)
 		{
+			uint16_t T(0);
 
-			for (uint16_t t(a); t <= b; ++t)
+
+			std::vector<uint16_t> sub(A.begin()+(k+1), A.end());
+			for (uint16_t x : sub)
 			{
-				if (t  + _p[j] <= _d[j] + 1)
+				T += _p[x];
+			}
+			T += 1;
+			
+			T = std::min(b, T);
+
+			for (uint16_t t(0); t <= T; ++t)
+			{
+				if (a + t  + _p[j] <= std::min(b,(uint16_t)(_d[j] + 1)))
 				{
 					f[j].emplace(t, _w[j]);
 				}
 				else
-				{
+				{	
 					f[j].emplace(t, 0);
 				}
 			}
 		}
 		else
 		{
-			for (uint16_t t(a); t <= b; ++t)
+
+			uint16_t T(0);
+
+			for (uint16_t x : A)
+			{
+				T += _p[x];
+			}
+			T += 1;
+			T = std::min(b, T);
+
+			for (uint16_t t(0); t <= T; ++t)
 			{
 				f[j].emplace(t, 0);
 			}
@@ -251,34 +266,47 @@ utils::Matrix Instance::DP1(std::vector<uint16_t>& A, uint16_t a, uint16_t b) co
 	{
 		uint16_t j(A.at(ii));
 
-		for (uint16_t t(a); t <= b-_p[j]; ++t)
+		uint16_t T(0);
+		std::vector<uint16_t> sub(A.begin() + (k + 1), A.end());
+		for (uint16_t x : sub)
+		{
+			T += _p[x];
+		}
+		T += 1;
+
+		T = std::min(T, b);
+		for (uint16_t t(0); t <= T; ++t)
 		{
 			uint16_t PHI1(0);
 			uint16_t PHI2(0);
 
-			if (t + _p[j]  <= _d[j] + 1)
+			uint16_t tt(std::min(T,(uint16_t)(t + _p[j])));
+
+			if (a + t + _p[j]  <= std::min(b, (uint16_t)(_d[j] + 1)))
 			{
-				PHI1 = _w[j] + f[jprev][t + _p[j]];
+				PHI1 = _w[j] + f.at(jprev).at(tt);
 			}
 			else
 			{
-				PHI1 = f[jprev][t + _p[j]];
+				PHI1 = f.at(jprev).at(tt);
 			}
 
 			uint16_t sum2(0);
-			for (size_t l(0); l < k + 1; ++l)
+			for (uint16_t l(0); l < k + 1; ++l)
 			{
 				sum2 += _p[A.at(l)];
 			}
+			sum2 += 1;
 
 
-			if (sum2 + t <= _d[j] + 1)
+			if (a + sum2 + t <= std::min(b, (uint16_t)(_d[j] + 1)))
 			{
-				PHI2 = f[jprev][t] + _w[j];
+				PHI2 = f.at(jprev).at(t) + _w[j];
 			}
 			else
 			{
-				PHI2 = f[jprev][t];
+
+				PHI2 = f.at(jprev).at(t);
 			}
 
 			if (PHI1 < PHI2)
@@ -389,12 +417,11 @@ std::vector<uint16_t> Instance::Heuristic2() const
 		std::vector<uint16_t> A;
 		for (uint16_t i : L)
 		{
-			if (_e[i] <= Emin and b <= _d[i])
+			if (_e[i] <= Emin and b <= _d[i]+1)
 			{
 				A.push_back(i);
 			}
 		}
-
 		utils::Matrix f(DP1(A, a, b));
 		
 		if (not f.empty())
@@ -527,8 +554,8 @@ uint16_t Instance::DPUpperBound(uint16_t tinit, const std::set<uint16_t> & visit
 
 	utils::Matrix f(DP(A, tinit, _dmax+1));
 
-
 	uint16_t last(A.at(A.size() - 1));
+
 
 	return f.at(last).at(0);
 }
