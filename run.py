@@ -28,7 +28,7 @@ def list_files_recursive(path):
 
 dats = list_files_recursive(instdir)
 # header
-print('n','dL','dU','corrLevel','num','H1','H2','H3','Obj','Time')
+print('n','dL','dU','corrLevel','num','H1','H1a','H1b','H3','Obj','Seq','Time')
 for dat in dats:
 	if dat.find('.dat') != -1:
 		n,dL,dU,corrLevel,num = re.search('([0-9]+)orders_dL_(.*)_dU_(.*)_(.*)_(.*).dat',os.path.basename(dat)).groups(0)

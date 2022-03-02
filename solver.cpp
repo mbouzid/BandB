@@ -10,9 +10,10 @@
 void Solver::run()
 {
 
-	//auto start = std::chrono::system_clock::now();
 
-	std::vector < std::vector<uint16_t> > heuristics = { _instance->Heuristic1()  , _instance->Heuristic2() , _instance->Heuristic3() };
+
+
+	std::vector < std::vector<uint16_t> > heuristics = { _instance->Heuristic1(), _instance->Heuristic1a(), _instance->Heuristic1b() ,   /*, _instance->Heuristic2()*/ _instance->Heuristic3() };
 	
 	std::vector<uint16_t> bestSequence(*std::max_element(heuristics.begin(), heuristics.end(),
 		[this](const std::vector<uint16_t>& x, const std::vector<uint16_t>& y){ return _instance->computeProfit(x) <= _instance->computeProfit(y); }));
@@ -26,15 +27,9 @@ void Solver::run()
 		std::cout << _instance->computeProfit(heuristics.at(k)) << " ";
 
 
-	//std::ofstream f("save.out");
-	
-	/*auto end = std::chrono::system_clock::now();
+	/*auto start = std::chrono::system_clock::now();
+	std::ofstream f("save.out"); */
 
-	std::chrono::duration<double> elapsed_seconds = end - start;
-	std::time_t end_time = std::chrono::system_clock::to_time_t(end);
-
-	f << elapsed_seconds.count() << " "<< maxProfit << std::endl;
-	start = std::chrono::system_clock::now();  */
 
 
 	while (not _queue.empty())
@@ -86,8 +81,18 @@ void Solver::run()
 				profit += _instance->getW(j);
 				sequence.push_back(j);
 				visited.insert(j);
+
+				
 				
 				upperBound = profit + _instance->DPUpperBound(t, visited);
+				/*auto end = std::chrono::system_clock::now();
+
+				std::chrono::duration<double> elapsed_seconds = end - start;
+				std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+
+				start = end;	
+				f << elapsed_seconds.count() << " " << profit << " " << upperBound  << " " << maxProfit << " "<< u.getJob() << std::endl;
+				*/
 
 			if (profit > maxProfit)
 			{
@@ -114,6 +119,7 @@ void Solver::run()
 	std::cout << "]\" ";		 
 
 
+	//f.close();
 	/*auto end1 = std::chrono::system_clock::now();
 
 	std::chrono::duration<double> elapsed_seconds1 = end1 - start;

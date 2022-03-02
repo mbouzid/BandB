@@ -86,6 +86,44 @@ protected:
 
 	}
 
+	void computeRatio_a(std::map<uint16_t, double>& ratio, const std::vector <uint16_t>& orders, uint16_t t)	const
+	{
+		for (uint16_t i : orders)
+		{
+			int16_t C(_earliestCompletionTime[i][t]);
+
+			if (ratio.find(i) == ratio.end())
+			{
+				ratio.emplace(i, -1);
+			}
+
+			if (C != -1)
+				ratio[i] = ((double)(C-_p[i])) / (double)_w[i];
+
+		}
+
+
+	}
+
+	void computeRatio_b(std::map<uint16_t, double>& ratio, const std::vector <uint16_t>& orders, uint16_t t)	const
+	{
+		for (uint16_t i : orders)
+		{
+			int16_t C(_earliestCompletionTime[i][t]);
+
+			if (ratio.find(i) == ratio.end())
+			{
+				ratio.emplace(i, -1);
+			}
+
+			if (C != -1)
+				ratio[i] = (((double)C ) / (double)_w[i]) + (((double)(C - _p[i])) / (double)_w[i]);
+
+		}
+
+
+	}
+
 
 	int16_t computeEarliestCompletionTime(uint16_t i, uint16_t t) const;
 	uint16_t energyMinimalInInterval(uint16_t a, uint16_t b) const;
@@ -174,6 +212,10 @@ public:
 
 	utils::Matrix DP1(std::vector<uint16_t>& A, uint16_t a, uint16_t b) const;
 	std::vector<uint16_t> Heuristic1() const;
+	std::vector<uint16_t> Heuristic1a() const;
+	std::vector<uint16_t> Heuristic1b() const;
+
+
 	std::vector<uint16_t> Heuristic2() const;
 	std::vector<uint16_t> Heuristic3() const;
 

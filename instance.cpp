@@ -395,6 +395,140 @@ std::vector<uint16_t> Instance::Heuristic1() const
 	return seq;
 }
 
+std::vector<uint16_t> Instance::Heuristic1a() const
+{
+	int16_t t(0);
+	uint16_t profit(0);
+
+	std::vector <uint16_t> orders, seq;
+
+	for (uint16_t i(0); i < _n; ++i)
+	{
+		orders.push_back(i);
+	}
+
+	while (t <= _dmax)
+	{
+		std::map<uint16_t, double> ratio;
+
+		computeRatio_a(ratio, orders, t);
+
+		std::vector<uint16_t> L(orders);
+		for (uint16_t i : orders)
+		{
+			std::vector<uint16_t>::iterator found(std::find(L.begin(), L.end(), i));
+			if (ratio.at(i) == -1 and found != L.end())
+			{
+				L.erase(found);
+			}
+		}
+
+		std::sort
+		(
+			L.begin(),
+			L.end(),
+			[&ratio](uint16_t x, uint16_t  y)
+			{
+				return ratio.at(x) <= ratio.at(y);
+			}
+		);
+
+
+		if (not L.empty())
+		{
+
+			uint16_t j(*L.begin());
+
+			int16_t C = _earliestCompletionTime[j][t];
+			if (C != -1)
+			{
+				t = C;
+				profit += _w[j];
+				orders.erase(std::find(orders.begin(), orders.end(), j));
+				seq.push_back(j);
+			}
+			/*else
+			{
+				break;
+			}*/
+		}
+		else
+		{
+			break;
+		}
+
+	}
+
+	return seq;
+}
+
+std::vector<uint16_t> Instance::Heuristic1b() const
+{
+	int16_t t(0);
+	uint16_t profit(0);
+
+	std::vector <uint16_t> orders, seq;
+
+	for (uint16_t i(0); i < _n; ++i)
+	{
+		orders.push_back(i);
+	}
+
+	while (t <= _dmax)
+	{
+		std::map<uint16_t, double> ratio;
+
+		computeRatio_b(ratio, orders, t);
+
+		std::vector<uint16_t> L(orders);
+		for (uint16_t i : orders)
+		{
+			std::vector<uint16_t>::iterator found(std::find(L.begin(), L.end(), i));
+			if (ratio.at(i) == -1 and found != L.end())
+			{
+				L.erase(found);
+			}
+		}
+
+		std::sort
+		(
+			L.begin(),
+			L.end(),
+			[&ratio](uint16_t x, uint16_t  y)
+			{
+				return ratio.at(x) <= ratio.at(y);
+			}
+		);
+
+
+		if (not L.empty())
+		{
+
+			uint16_t j(*L.begin());
+
+			int16_t C = _earliestCompletionTime[j][t];
+			if (C != -1)
+			{
+				t = C;
+				profit += _w[j];
+				orders.erase(std::find(orders.begin(), orders.end(), j));
+				seq.push_back(j);
+			}
+			/*else
+			{
+				break;
+			}*/
+		}
+		else
+		{
+			break;
+		}
+
+	}
+
+	return seq;
+}
+
 std::vector<uint16_t> Instance::Heuristic2() const
 {					
 
@@ -456,9 +590,14 @@ std::vector<uint16_t> Instance::Heuristic3() const
 
 	for (uint16_t i(0); i < _n; ++i)
 	{
-		L.push_back(i);
-		ratio.emplace(i, -1.0);
-	}
+		auto found = std::find(sequence.begin(), sequence.end(), i);
+		if (found == sequence.end())
+		{
+			L.push_back(i);
+			ratio.emplace(i, -1.0);
+		}
+	} 
+
 
 
 
@@ -475,7 +614,7 @@ std::vector<uint16_t> Instance::Heuristic3() const
 					A.insert(j);
 				} 
 			}
-			ratio[i] = (_w[i]/_earliestCompletionTime[i][t]) + DPUpperBound(t + _p[i], A);
+			ratio[i] =(_w[i]/ _earliestCompletionTime[i][t]) + DPUpperBound(_earliestCompletionTime[i][t], A);
 		} 
 
 		std::sort
@@ -497,7 +636,7 @@ std::vector<uint16_t> Instance::Heuristic3() const
 			{
 				sequence.push_back(j);
 				L.erase(std::find(L.begin(), L.end(), j));
-				t += _earliestCompletionTime[j][t];
+				t = _earliestCompletionTime[j][t];
 			}
 			else
 			{
@@ -528,13 +667,17 @@ uint16_t Instance::computeProfit(const std::vector<uint16_t>& seq) const
 }
 
 
-
 uint16_t Instance::DPUpperBound(uint16_t tinit, const std::set<uint16_t> & visited) const
 {
 	if (visited.size() == _n)
 	{
 		return 0;
 	}
+
+	/*if (tinit == -1)
+	{
+		return 0;
+	} */
 
 	std::vector<uint16_t> A;
 	
