@@ -13,7 +13,13 @@ void Solver::run()
 
 
 
-	std::vector < std::vector<uint16_t> > heuristics = { _instance->Heuristic1(), _instance->Heuristic1a(), _instance->Heuristic1b() ,   /*, _instance->Heuristic2()*/ _instance->Heuristic3() };
+	std::vector < std::vector<uint16_t> > heuristics = 
+	{ 
+		_instance->Heuristic1(core::heuristic_ratio::RATIO_A), 
+		_instance->Heuristic1(core::heuristic_ratio::RATIO_A),
+		_instance->Heuristic1(core::heuristic_ratio::RATIO_A) ,
+		_instance->Heuristic3() 
+	};
 	
 	std::vector<uint16_t> bestSequence(*std::max_element(heuristics.begin(), heuristics.end(),
 		[this](const std::vector<uint16_t>& x, const std::vector<uint16_t>& y){ return _instance->computeProfit(x) <= _instance->computeProfit(y); }));
