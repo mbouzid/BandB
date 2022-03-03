@@ -6,6 +6,7 @@
 #include <map>
 #include <algorithm>
 #include <numeric>
+#include "milp.h"
 
 int16_t Instance::computeEarliestCompletionTime(uint16_t i, uint16_t t) const
 {
@@ -717,6 +718,28 @@ uint16_t Instance::MooreUpperBound(uint16_t tinit, const std::set<uint16_t>& vis
 	return wTotal;
 }
 
+uint16_t Instance::MILPUpperBound(uint16_t tinit, const std::set<uint16_t>& visited, int numThread) const
+{
+
+
+	std::vector<uint16_t> A;
+
+	for (uint16_t i(0); i < _n; ++i)
+	{
+		if ((visited.find(i) == visited.cend()) and (tinit <= _d[i] - _p[i] + 1) and (_earliestCompletionTime[i][tinit] != -1))
+		{
+			A.push_back(i+1);
+		}
+	}
+
+	if (A.empty())
+	{
+		return 0;
+	}
+
+	return run(_datfile,numThread, A, tinit,100);
+}
+
 uint16_t Instance::Heuristic1LowerBound(uint16_t tinit, const std::vector<uint16_t>& seq,  const std::set<uint16_t>& visited, core::heuristic_ratio HeuristicRatio) const
 {
 	std::vector<uint16_t> orders, sequence(seq);
@@ -950,5 +973,5 @@ Instance* Instance::load(const char* datname)
 	f.close();
 
 
-	return new Instance(n, p, d, w, e, E, T, dmax);
+	return new Instance(datname, n, p, d, w, e, E, T, dmax);
 }

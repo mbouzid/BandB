@@ -128,26 +128,31 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;IL_STD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <OpenMPSupport>true</OpenMPSupport>
+      <AdditionalIncludeDirectories>$(CPLEX_STUDIO_DIR129)\opl\include;$(CPLEX_STUDIO_DIR129)\cplex\include;$(CPLEX_STUDIO_DIR129)\concert\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(CPLEX_STUDIO_DIR129)\cplex\lib\x64_windows_vs2017\stat_mda;$(CPLEX_STUDIO_DIR129)\concert\lib\x64_windows_vs2017\stat_mda;$(CPLEX_STUDIO_DIR129)\cpoptimizer\lib\x64_windows_vs2017\stat_mda;$(CPLEX_STUDIO_DIR129)\opl\lib\x64_windows_vs2017\stat_mda;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>concert.lib;cplex1290.lib;ilocplex.lib;cp.lib;opl.lib;iljs.lib;icuio.lib;icuuc.lib;icule.lib;icuin.lib;icudt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="instance.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="milp.cpp" />
     <ClCompile Include="node.cpp" />
     <ClCompile Include="solver.cpp" />
     <ClCompile Include="utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="core.h" />
+    <ClInclude Include="milp.h" />
     <ClInclude Include="instance.h" />
     <ClInclude Include="node.h" />
     <ClInclude Include="solver.h" />

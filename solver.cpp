@@ -26,8 +26,19 @@ void Solver::run()
 
 	uint16_t lowerBound(_instance->computeProfit(bestSequence));	
 	
+	// upperBound
+	uint16_t initialUpperBound(0);
+	for (uint16_t i(0); i < _instance->getN(); ++i)
+	{
+		initialUpperBound += _instance->getW(i);
+	}
 
-	_queue.push(Node(-1, 0, 0, 0, 0, utils::emptySet(), utils::emptyVector()));
+	initialUpperBound = std::min(initialUpperBound, _instance->MILPUpperBound(0, {}, omp_get_thread_num()));
+	initialUpperBound = std::min(initialUpperBound, _instance->DPUpperBound(0, {}));
+
+
+
+	_queue.push(Node(-1, 0, 0, initialUpperBound, 0, utils::emptySet(), utils::emptyVector()));
 
 	for (size_t k(0); k < heuristics.size(); ++k)
 		std::cout << _instance->computeProfit(heuristics.at(k)) << " ";
@@ -64,7 +75,7 @@ void Solver::run()
 			}
 		}
 
-		//#pragma omp parallel for shared(lowerBound), num_threads(8)
+		#pragma omp parallel for shared(lowerBound), num_threads(8)
 		for (int k(0); k < A.size(); ++k)
 		{
 			uint16_t j(A.at(k));   				
@@ -74,7 +85,7 @@ void Solver::run()
 			
 
 			uint16_t incumbentProfit(u.getProfit());
-			uint16_t upperBound(0);
+			uint16_t upperBound(u.getUpperBound());
 			uint16_t t(u.getT());
 
 			std::set<uint16_t> visited(u.getVisited());
@@ -83,26 +94,41 @@ void Solver::run()
 			std::vector<uint16_t> sequence(u.getSequence());
 
 
-				t = earliestEndtime;
-				incumbentProfit += _instance->getW(j);
-				sequence.push_back(j);
-				visited.insert(j);
+			t = earliestEndtime;
+			incumbentProfit += _instance->getW(j);
+			sequence.push_back(j);
+			visited.insert(j);
 
 				
+			uint16_t ratio((double)_instance->getW(j) /(double) t);
 				
-				uint16_t ub1 = incumbentProfit + _instance->DPUpperBound(t, visited);
+			uint16_t ub1 (ratio + _instance->DPUpperBound(t, visited));
+			if (ub1 == upperBound)
+			{
+				continue;
+			}
 
-				//uint16_t ub2(incumbentProfit + _instance->MooreUpperBound(t, visited));
+			upperBound = std::min(ub1, upperBound);
+			
+			
 
-				//std::cout << "ub1=" << ub1 << ",ub2=" << ub2 << std::endl;
+			
+			// UPPERBOUND
+			/*if (visited.size() <= std::round(0.1 * _instance->getN()))
+			{
+				uint16_t ub2 =  _instance->MILPUpperBound(t, visited, omp_get_thread_num());
+				upperBound = std::min(upperBound, ub2);
+			}*/ 
 
+			/*if (visited.size() >= 0.8 * _instance->getN())
+			{
+				uint16_t ub3( _instance->MooreUpperBound(t, visited));
+				upperBound = std::min(upperBound, ub3);
+			}*/
 
-				//uint16_t ubmin = std::min(ub1, ub2);
-				
-				//upperBound = ubmin;
-				upperBound = ub1;
-
-				/*uint16_t lb1(_instance->Heuristic1LowerBound(t, sequence, visited, core::heuristic_ratio::RATIO_A));
+			/*
+				// LOWER BOUNDS
+				uint16_t lb1(_instance->Heuristic1LowerBound(t, sequence, visited, core::heuristic_ratio::RATIO_A));
 				uint16_t lb2(_instance->Heuristic1LowerBound(t, sequence, visited, core::heuristic_ratio::RATIO_B));
 				uint16_t lb3(_instance->Heuristic1LowerBound(t, sequence, visited, core::heuristic_ratio::RATIO_C));
 
@@ -119,31 +145,17 @@ void Solver::run()
 				}*/
 
 
-				/*auto end = std::chrono::system_clock::now();
 
-				std::chrono::duration<double> elapsed_seconds = end - start;
-				std::time_t end_time = std::chrono::system_clock::to_time_t(end);
-
-				start = end;	
-				f << elapsed_seconds.count() << " " << profit << " " << upperBound  << " " << maxProfit << " "<< u.getJob() << std::endl;
-				*/
-
-				if (incumbentProfit > lowerBound)
-				{
-					lowerBound = incumbentProfit;
-					bestSequence = sequence;
-				}
-				/*else
-				if (lbmax > maxProfit)
-				{
-					maxProfit = lbmax;
-					bestSequence = sequence;
-				}*/
-
+			if (incumbentProfit > lowerBound)
+			{
+				lowerBound = incumbentProfit;
+				bestSequence = sequence;
+			}
+				
 
 			#pragma omp critical
 			{
-				if (upperBound > lowerBound)
+				if (upperBound + incumbentProfit > lowerBound)
 				{
 
 					_queue.push(Node(j, u.getLevel() + 1, incumbentProfit, upperBound, t, visited, sequence));

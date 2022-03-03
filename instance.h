@@ -13,6 +13,7 @@ class Instance
 
 	private:
 
+	const char* _datfile;
 	size_t _n;
 
 	uint16_t* _p;
@@ -30,6 +31,7 @@ class Instance
 	// constructor
 	Instance
 	(
+		const char * datfile,
 		size_t n,
 		uint16_t* p,
 		uint16_t* d,
@@ -39,6 +41,7 @@ class Instance
 		uint16_t T,
 		uint16_t dmax
 	):
+		_datfile(datfile),
 		_n(n),
 		_p(p),
 		_d(d),
@@ -94,6 +97,7 @@ protected:
 public:
 
 	Instance(const Instance& _) :
+		_datfile(_._datfile),
 		_n(_._n),
 		_p((uint16_t*)calloc(_._n, sizeof(uint16_t))),
 		_d((uint16_t*)calloc(_._n, sizeof(uint16_t))),  
@@ -120,6 +124,11 @@ public:
 	}
 
 	static Instance* load(const char* datname);
+							   
+	const char* getDatFile() const
+	{
+		return _datfile;
+	}
 
 	uint16_t getT() const
 	{
@@ -184,7 +193,10 @@ public:
 
 	uint16_t DPUpperBound(uint16_t tinit, const std::set<uint16_t>& visited) const;
 	uint16_t MooreUpperBound(uint16_t tinit, const std::set<uint16_t>& visited) const;
+	uint16_t MILPUpperBound(uint16_t tinit, const std::set<uint16_t>& visited, int numThread) const;
 	uint16_t Heuristic1LowerBound(uint16_t tinit, const std::vector<uint16_t> & seq, const std::set<uint16_t>& visited, core::heuristic_ratio HeuristicRatio) const;
+
+	
 
 
 	~Instance()
