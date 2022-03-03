@@ -73,16 +73,15 @@ protected:
 	{
 		for (uint16_t i : orders)
 		{
-			int16_t C(_earliestCompletionTime[i][t]);
 
 			if (ratio.find(i) == ratio.end())
 			{
 				ratio.emplace(i, -1);
 			}
 
-			if (C != -1)
+			if (_earliestCompletionTime[i][t] != -1)
 			{
-				ratio[i] = computation(C, _p[i], _w[i]);
+				ratio[i] = computation(_earliestCompletionTime[i][t], _p[i], _w[i]);
 			}
 		}
 
@@ -175,6 +174,7 @@ public:
 
 	utils::Matrix DP1(std::vector<uint16_t>& A, uint16_t a, uint16_t b) const;
 
+	int mainloop_insertionHeuristic(int16_t & t, std::vector <uint16_t>& orders, std::vector <uint16_t>& seq, uint16_t & profit, core::heuristic_ratio HeuristicRatio) const;
 	std::vector<uint16_t> Heuristic1(core::heuristic_ratio) const;
 
 	std::vector<uint16_t> Heuristic2() const;
@@ -183,6 +183,8 @@ public:
 	uint16_t computeProfit(const std::vector <uint16_t> & ) const;
 
 	uint16_t DPUpperBound(uint16_t tinit, const std::set<uint16_t>& visited) const;
+	uint16_t MooreUpperBound(uint16_t tinit, const std::set<uint16_t>& visited) const;
+	uint16_t Heuristic1LowerBound(uint16_t tinit, const std::vector<uint16_t> & seq, const std::set<uint16_t>& visited, core::heuristic_ratio HeuristicRatio) const;
 
 
 	~Instance()

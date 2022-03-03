@@ -16,15 +16,15 @@ void Solver::run()
 	std::vector < std::vector<uint16_t> > heuristics = 
 	{ 
 		_instance->Heuristic1(core::heuristic_ratio::RATIO_A), 
-		_instance->Heuristic1(core::heuristic_ratio::RATIO_A),
-		_instance->Heuristic1(core::heuristic_ratio::RATIO_A) ,
+		_instance->Heuristic1(core::heuristic_ratio::RATIO_B),
+		_instance->Heuristic1(core::heuristic_ratio::RATIO_C) ,
 		_instance->Heuristic3() 
 	};
 	
 	std::vector<uint16_t> bestSequence(*std::max_element(heuristics.begin(), heuristics.end(),
 		[this](const std::vector<uint16_t>& x, const std::vector<uint16_t>& y){ return _instance->computeProfit(x) <= _instance->computeProfit(y); }));
 
-	uint16_t maxProfit(_instance->computeProfit(bestSequence));	
+	uint16_t lowerBound(_instance->computeProfit(bestSequence));	
 	
 
 	_queue.push(Node(-1, 0, 0, 0, 0, utils::emptySet(), utils::emptyVector()));
@@ -64,7 +64,7 @@ void Solver::run()
 			}
 		}
 
-		#pragma omp parallel for shared(maxProfit), num_threads(8)
+		//#pragma omp parallel for shared(lowerBound), num_threads(8)
 		for (int k(0); k < A.size(); ++k)
 		{
 			uint16_t j(A.at(k));   				
@@ -73,7 +73,7 @@ void Solver::run()
 
 			
 
-			uint16_t profit(u.getProfit());
+			uint16_t incumbentProfit(u.getProfit());
 			uint16_t upperBound(0);
 			uint16_t t(u.getT());
 
@@ -84,13 +84,41 @@ void Solver::run()
 
 
 				t = earliestEndtime;
-				profit += _instance->getW(j);
+				incumbentProfit += _instance->getW(j);
 				sequence.push_back(j);
 				visited.insert(j);
 
 				
 				
-				upperBound = profit + _instance->DPUpperBound(t, visited);
+				uint16_t ub1 = incumbentProfit + _instance->DPUpperBound(t, visited);
+
+				//uint16_t ub2(incumbentProfit + _instance->MooreUpperBound(t, visited));
+
+				//std::cout << "ub1=" << ub1 << ",ub2=" << ub2 << std::endl;
+
+
+				//uint16_t ubmin = std::min(ub1, ub2);
+				
+				//upperBound = ubmin;
+				upperBound = ub1;
+
+				/*uint16_t lb1(_instance->Heuristic1LowerBound(t, sequence, visited, core::heuristic_ratio::RATIO_A));
+				uint16_t lb2(_instance->Heuristic1LowerBound(t, sequence, visited, core::heuristic_ratio::RATIO_B));
+				uint16_t lb3(_instance->Heuristic1LowerBound(t, sequence, visited, core::heuristic_ratio::RATIO_C));
+
+				uint16_t lbmax(std::max(lb1, std::max(lb2, lb3)));
+				if (lbmax >= lowerBound)
+				{
+					lowerBound = lbmax;
+					continue;
+				 }
+
+				if (lbmax == upperBound)
+				{
+					continue;
+				}*/
+
+
 				/*auto end = std::chrono::system_clock::now();
 
 				std::chrono::duration<double> elapsed_seconds = end - start;
@@ -100,19 +128,25 @@ void Solver::run()
 				f << elapsed_seconds.count() << " " << profit << " " << upperBound  << " " << maxProfit << " "<< u.getJob() << std::endl;
 				*/
 
-			if (profit > maxProfit)
-			{
-				maxProfit = profit;
-				bestSequence = sequence;
-			}
+				if (incumbentProfit > lowerBound)
+				{
+					lowerBound = incumbentProfit;
+					bestSequence = sequence;
+				}
+				/*else
+				if (lbmax > maxProfit)
+				{
+					maxProfit = lbmax;
+					bestSequence = sequence;
+				}*/
 
 
 			#pragma omp critical
 			{
-				if (upperBound > maxProfit)
+				if (upperBound > lowerBound)
 				{
 
-					_queue.push(Node(j, u.getLevel() + 1, profit, upperBound, t, visited, sequence));
+					_queue.push(Node(j, u.getLevel() + 1, incumbentProfit, upperBound, t, visited, sequence));
 
 				}
 			}
@@ -120,7 +154,7 @@ void Solver::run()
 
 	}	   
 	
-	std::cout << " " << maxProfit << " \"[";
+	std::cout << " " << lowerBound << " \"[";
 	utils::print<uint16_t>(std::cout, bestSequence);		 
 	std::cout << "]\" ";		 
 

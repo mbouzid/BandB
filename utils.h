@@ -6,7 +6,7 @@
 #include <random>
 #include <map>
 #define NELEMS(x)  (sizeof(x) / sizeof((x)[0]))
-#define PMAX 100
+#define PMAX 10
 
 namespace utils
 {
