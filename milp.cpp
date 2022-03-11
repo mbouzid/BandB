@@ -1,12 +1,15 @@
 #include "milp.h"
 
+const char* milp::s_params = "modeles\\relaxed_v4.mod";
 
-uint16_t run(const char * datfile, int numThread, const std::vector<uint16_t>& orders, uint16_t t, uint16_t T)
+uint16_t milp::run()
 {
 	IloEnv env;
-	IloOplRunConfiguration rc(loadRC(env, datfile,numThread, orders,t,T));
+	IloOplRunConfiguration rc(loadRC(env));
 
 	IloOplModel opl(rc.getOplModel());
+	
+	//opl.getModel().add(_profit == opl.getElement("profit").asNumVar());
 
 
 
@@ -25,33 +28,46 @@ uint16_t run(const char * datfile, int numThread, const std::vector<uint16_t>& o
 		std::cerr << "problem with CPLEX" << std::endl;
 	}
 
+
+	 //IloInt test(cplx.getValue(_profit));
+
+	/*std::ostringstream oss;
+	oss << "sol_" << _numThread << ".sol";
+	std::string name(oss.str());
+	cplx.writeSolution(name.c_str()); */
+
+	IloInt obj(IloRound(cplx.getObjValue()));
+
+
 	cplx.end();
 	env.end();
 
-	return profit;
+	
+	return obj;
+	//return test;
 }
 
-void createTmpDat(const char* datfile,const char* tmpdatfile, const std::vector<uint16_t>& orders,  uint16_t tinit, uint16_t T)
+void milp::createTmpDat()
 {	
 	
-	std::ofstream f(tmpdatfile);
+	std::ofstream f(tmpDatName());
 
 
 	f << "candidates={";
-	if (not orders.empty())
+	if (not _orders.empty())
 	{
-		f << *orders.begin();
-		for (auto i(std::next(orders.begin())); i != orders.end(); ++i)
+		f << *_orders.begin();
+		for (auto i(std::next(_orders.begin())); i != _orders.end(); ++i)
 		{
 			f << "," << (*i);
 		}
 	}
 	f << "};" << std::endl;
 
-	f << "tinit=" << tinit << ";" << std::endl;
-	f << "Tmax=" << T << ";" << std::endl;
+	f << "tinit=" << _t << ";" << std::endl;
+	f << "Tmax=" << _T << ";" << std::endl;
 
-	std::ifstream ff(datfile);
+	std::ifstream ff(_datfile);
 	std::string line;
 	while (std::getline(ff, line))
 	{
@@ -64,7 +80,7 @@ void createTmpDat(const char* datfile,const char* tmpdatfile, const std::vector<
 
 }
 
-IloOplRunConfiguration loadRC(IloEnv& env, const char* datfile, int numThread, const std::vector<uint16_t>& orders, uint16_t t, uint16_t T)
+IloOplRunConfiguration milp::loadRC(IloEnv& env)
 {
 	IloOplErrorHandler errHdlr(env, std::cerr);
 	IloOplSettings settings(env, errHdlr);
@@ -73,18 +89,18 @@ IloOplRunConfiguration loadRC(IloEnv& env, const char* datfile, int numThread, c
 	IloOplModelDefinition def(src, settings);
 
 
-	std::ostringstream oss;
-	oss << "tmp_" << (uint16_t)numThread << ".dat";
+	createTmpDat();
 
-	std::string name(oss.str());
-	createTmpDat(datfile,name.c_str(), orders, t, T);
+	IloOplDataSource dat(env, tmpDatName().c_str());
 
-	IloOplDataSource dat(env, name.c_str());
 
+	_profit = IloIntVar(env);
 
 	IloOplDataElements elts(def, dat);
 	
+
 	IloOplRunConfiguration rc(def, elts);
+	
 	rc.getOplModel().generate();
 
 

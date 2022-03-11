@@ -345,3 +345,4 @@ healthchecksdb
 *.mod
 *.ipynb
 *.csv
+*.txt

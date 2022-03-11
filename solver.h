@@ -12,7 +12,7 @@ class Solver
 	private:
 
 	Instance* _instance;
-	std::priority_queue<Node, std::vector<Node>, std::greater<Node>> _queue;
+
 
 
 	public:
@@ -26,6 +26,9 @@ class Solver
 
 	void run();
 
+	void runHeuristics(uint16_t& bestInitialLowerBound, uint16_t & bestInitialUpperBound, std::vector<uint16_t>& bestSequence);
+
+	void runDPUpperBoundClassic();
 	~Solver()
 	{
 

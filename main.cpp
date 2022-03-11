@@ -12,7 +12,9 @@ int main(int argc, char* argv[])
 
 		Instance* dat(Instance::load(datname));
 
+		char delim(';');
 		Solver 	solver(dat);
+
 
 
 		auto start = std::chrono::system_clock::now();
@@ -22,7 +24,9 @@ int main(int argc, char* argv[])
 		std::chrono::duration<double> elapsed_seconds = end - start;
 		std::time_t end_time = std::chrono::system_clock::to_time_t(end);
 
-		std::cout << elapsed_seconds.count() << std::endl;
+		std::cout << delim <<  elapsed_seconds.count() << std::endl;
+
+
 
 		delete dat;
 	}

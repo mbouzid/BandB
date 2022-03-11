@@ -5,8 +5,11 @@
 #include <vector>
 #include <set>
 #include <functional>
+#include <chrono>
 #include "utils.h"
 #include "core.h"
+
+
 
 class Instance
 {
@@ -14,6 +17,8 @@ class Instance
 	private:
 
 	const char* _datfile;
+	utils::datfile::s_characteristics * _characteristics;
+
 	size_t _n;
 
 	uint16_t* _p;
@@ -31,6 +36,7 @@ class Instance
 	// constructor
 	Instance
 	(
+		utils::datfile::s_characteristics * characteristics,
 		const char * datfile,
 		size_t n,
 		uint16_t* p,
@@ -41,6 +47,7 @@ class Instance
 		uint16_t T,
 		uint16_t dmax
 	):
+		_characteristics(characteristics),
 		_datfile(datfile),
 		_n(n),
 		_p(p),
@@ -79,7 +86,7 @@ protected:
 
 			if (ratio.find(i) == ratio.end())
 			{
-				ratio.emplace(i, -1);
+				ratio.emplace(i, std::numeric_limits<double>::infinity());
 			}
 
 			if (_earliestCompletionTime[i][t] != -1)
@@ -97,6 +104,7 @@ protected:
 public:
 
 	Instance(const Instance& _) :
+		_characteristics((utils::datfile::s_characteristics*)calloc(1,sizeof(_._characteristics))),
 		_datfile(_._datfile),
 		_n(_._n),
 		_p((uint16_t*)calloc(_._n, sizeof(uint16_t))),
@@ -108,6 +116,7 @@ public:
 		_dmax(_._dmax),
 		_earliestCompletionTime((int16_t**)calloc(_._n,sizeof(int16_t*)))
 	{
+		memcpy(_characteristics, _._characteristics, sizeof(_._characteristics) * 1);
 		memcpy(_p, _._p, sizeof(uint16_t) * _._n);
 		memcpy(_d, _._d, sizeof(uint16_t) * _._n);
 		memcpy(_w, _._w, sizeof(uint16_t) * _._n);
@@ -124,10 +133,33 @@ public:
 	}
 
 	static Instance* load(const char* datname);
+
+	
 							   
 	const char* getDatFile() const
 	{
 		return _datfile;
+	}
+
+	uint16_t getDL() const
+	{
+		return _characteristics->dL;
+	}
+
+	uint16_t getDU() const
+	{
+		return _characteristics->dU;
+	}
+
+	utils::datfile::e_corrLevel getCorrLevel() const
+	{
+		return _characteristics->corrLevel;
+	}
+
+
+	uint16_t getInstNum() const
+	{
+		return _characteristics->numInst;
 	}
 
 	uint16_t getT() const
@@ -179,21 +211,33 @@ public:
 	}
 
 
+	/* check feasibility from tinit with sequence */
+	uint16_t checkProfit(int16_t tinit, const std::set<uint16_t> & visited) const;
+
 	utils::Matrix DP(std::vector<uint16_t>& A, uint16_t a, uint16_t b) const;
 
 	utils::Matrix DP1(std::vector<uint16_t>& A, uint16_t a, uint16_t b) const;
 
 	int mainloop_insertionHeuristic(int16_t & t, std::vector <uint16_t>& orders, std::vector <uint16_t>& seq, uint16_t & profit, core::heuristic_ratio HeuristicRatio) const;
+	
+	
 	std::vector<uint16_t> Heuristic1(core::heuristic_ratio) const;
-
 	std::vector<uint16_t> Heuristic2() const;
-	std::vector<uint16_t> Heuristic3() const;
-
+	std::vector<uint16_t> Heuristic3(core::heuristic_ratio HeuristicRatio) const;
+	
+	
+	std::vector<uint16_t> Heuristic(core::heuristic_name hName, core::heuristic_ratio hRatio, std::chrono::time_point<std::chrono::system_clock>& start, std::vector<double> & duration) const;
+	
 	uint16_t computeProfit(const std::vector <uint16_t> & ) const;
 
 	uint16_t DPUpperBound(uint16_t tinit, const std::set<uint16_t>& visited) const;
+	uint16_t DPUpperBoundClassic(uint16_t tinit, const std::set<uint16_t>& visited) const;
+
 	uint16_t MooreUpperBound(uint16_t tinit, const std::set<uint16_t>& visited) const;
 	uint16_t MILPUpperBound(uint16_t tinit, const std::set<uint16_t>& visited, int numThread) const;
+	
+	uint16_t UpperBound(core::upperBound_name ubName, int16_t tinit, const std::set<uint16_t>& visited, int numThread, std::chrono::time_point<std::chrono::system_clock>& start, std::vector<double>& duration) const;
+	
 	uint16_t Heuristic1LowerBound(uint16_t tinit, const std::vector<uint16_t> & seq, const std::set<uint16_t>& visited, core::heuristic_ratio HeuristicRatio) const;
 
 	
@@ -201,6 +245,7 @@ public:
 
 	~Instance()
 	{
+		free(_characteristics);
 		delete _p;
 		delete _d;
 		delete _w;
@@ -210,6 +255,7 @@ public:
 
 	}
 
+	std::ostream& printCharacteristics(std::ostream& oss, char delim) const ;
 	void printSequence(const std::vector<uint16_t>& seq) const;
 
 	void printEarliestCompletionTimes() const;

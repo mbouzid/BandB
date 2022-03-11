@@ -6,7 +6,7 @@
 #include <random>
 #include <map>
 #define NELEMS(x)  (sizeof(x) / sizeof((x)[0]))
-#define PMAX 10
+#define PMAX 100
 
 namespace utils
 {
@@ -43,4 +43,38 @@ namespace utils
 
 
 	void cleanVector(std::vector <std::string>& v);
+
+	 std::vector<std::string> extractPattern(const std::string & );
+
+	 std::string getBaseName(const std::string& path);
+
+	 namespace datfile
+	 {
+		 enum e_corrLevel
+		 {
+			 NO,
+			 WEAKLY,
+			 STRONGLY,
+			 UNKNOWN
+		 };
+		 typedef enum e_corrLevel e_corrLevel;
+
+		 struct s_characteristics
+		 {
+			 uint16_t n;
+			 uint16_t dU;
+			 uint16_t dL;
+			 e_corrLevel corrLevel;
+			 uint16_t numInst;
+
+		 };
+		 typedef struct s_characteristics s_characteristics;
+
+		 s_characteristics * getCharacteristicsFromName(const std::string & filename);
+		 e_corrLevel toCorrLevel(const std::string& corrLevel);
+
+		 std::string fromCorrLevel(e_corrLevel corrLevel);
+
+	 }
+
 }

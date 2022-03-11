@@ -4,7 +4,7 @@ import sys
 import subprocess as sp
 
 _exec = '.\\x64\\Release\\BandB.exe'
-
+delim =";"
 assert (len(sys.argv) > 1), "An argument must be given"
 
 ## instdir informations
@@ -28,13 +28,12 @@ def list_files_recursive(path):
 
 dats = list_files_recursive(instdir)
 # header
-print('n','dL','dU','corrLevel','num','H1','H1a','H1b','H3','Obj','Seq','Time')
+print('n','dL','dU','corrLevel','instNum','Obj','Method','Time',sep=delim)
 for dat in dats:
 	if dat.find('.dat') != -1:
 		n,dL,dU,corrLevel,num = re.search('([0-9]+)orders_dL_(.*)_dU_(.*)_(.*)_(.*).dat',os.path.basename(dat)).groups(0)
 		cmd = _exec+" "+dat
-		
-		p = sp.Popen(cmd, shell=True, stdout=sp.PIPE)
-
-		output = p.stdout.read().decode('utf-8').replace('\n','')
-		print(n+' '+dL+' '+dU+' '+corrLevel+' '+num+' '+output)
+		os.system(cmd)
+		#p = sp.Popen(cmd, shell=True, stdout=sp.PIPE)
+		#output = p.stdout.read().decode('utf-8').replace('\n','')
+		#print(output)

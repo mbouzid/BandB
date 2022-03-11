@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <numeric>
 
+#include <filesystem>
 
 std::vector<std::string> utils::tokenize(const std::string& str, const std::string& delims)
 {
@@ -70,6 +71,16 @@ void utils::cleanVector(std::vector<std::string>& v)
 	}
 }
 
+std::vector<std::string> utils::extractPattern(const std::string& str)
+{
+	return tokenize(str, "_.");
+}
+
+std::string utils::getBaseName(const std::string& path)
+{
+	return std::filesystem::path(path).filename().string();
+}
+
 template<class T>
 std::ostream& utils::print(std::ostream& os, T* array, size_t n)
 {
@@ -122,3 +133,75 @@ std::vector<uint16_t> utils::emptyVector()
 
 template std::ostream& utils::print<uint16_t>(std::ostream& os, const std::vector<uint16_t>& v);
 template std::ostream& utils::print<uint16_t>(std::ostream& os, const std::set<uint16_t>& v);
+
+
+
+utils::datfile::s_characteristics * utils::datfile::getCharacteristicsFromName(const std::string& filename)
+{
+
+	std::vector<std::string> tokenFilename(utils::extractPattern(utils::getBaseName(filename)));
+
+	utils::datfile::s_characteristics* s = (utils::datfile::s_characteristics*)calloc(1,sizeof(utils::datfile::s_characteristics));
+
+
+	s->n = atoi(tokenFilename.at(0).c_str());
+	s->dL = atoi(tokenFilename.at(2).c_str());
+	s->dU = atoi(tokenFilename.at(4).c_str());
+	s->corrLevel = utils::datfile::toCorrLevel(tokenFilename.at(5).c_str());
+	s->numInst = atoi(tokenFilename.at(6).c_str());
+
+	return s;
+}
+
+utils::datfile::e_corrLevel utils::datfile::toCorrLevel(const std::string& corrLevel)
+{
+	if (corrLevel == "no")
+	{
+		return e_corrLevel::NO;
+	}
+	else
+		if (corrLevel == "weakly")
+		{
+			return e_corrLevel::WEAKLY;
+		}
+		else if (corrLevel == "strongly")
+		{
+			return e_corrLevel::STRONGLY;
+		}
+		else
+		{
+			return e_corrLevel::UNKNOWN;
+		}
+}
+
+std::string utils::datfile::fromCorrLevel(e_corrLevel corrLevel)
+{
+	switch (corrLevel)
+	{
+		case NO:
+		{
+			return std::string("no");
+			break;
+		}
+		case WEAKLY:
+		{
+			return std::string("weakly");
+			break;
+		}
+		case STRONGLY:
+		{
+			return std::string("strongly");
+			break;
+		}
+		case UNKNOWN:
+		{
+			break;
+		}
+		default :
+		{
+			break;
+		}
+
+	}
+	return std::string("err");
+}

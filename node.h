@@ -35,8 +35,9 @@ class Node
 			_sequence(sequence),
 			_priority(0)
 		{
-			_priority = _level * _profit * _upperBound * _t;
+			_priority = _level * (_profit + _upperBound) *_t;
 		}
+
 
 		Node(const Node & _ ):
 			_jobBranch(_._jobBranch),
@@ -67,6 +68,11 @@ class Node
 		uint16_t getUpperBound() const
 		{
 			return _upperBound;
+		}
+
+		void setUpperBound(uint16_t UB)
+		{
+			_upperBound = UB;
 		}
 
 		uint16_t getPriority() const

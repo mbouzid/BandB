@@ -49,6 +49,52 @@ uint16_t Instance::energyMinimalInInterval(uint16_t a, uint16_t b) const
 	return *std::min_element(_E+a,_E+b);
 }
 
+uint16_t Instance::checkProfit(int16_t tinit, const std::set<uint16_t>& visited) const
+{
+
+	std::vector<uint16_t> A;
+
+	for (uint16_t i(0); i < _n; ++i)
+	{
+		if ((visited.find(i) == visited.cend()) and (tinit <= _d[i] - _p[i] + 1) and (_earliestCompletionTime[i][tinit] != -1))
+		{
+			A.push_back(i);
+		}
+	}
+
+
+	// sort by EDD
+	std::sort
+	(
+		A.begin(), A.end(),
+		[this](uint16_t i, uint16_t j)
+		{
+			return _d[i] <= _d[j];
+		}
+	);
+
+
+	uint16_t profit(0);
+
+	int16_t t(tinit);
+	while (not A.empty())
+	{
+		uint16_t j(*A.begin());
+
+		if (_earliestCompletionTime[j][t] != -1)
+		{
+
+			t = _earliestCompletionTime[j][t];
+			profit += _w[j];
+		}
+		
+		A.erase(A.begin());
+	}
+
+
+	return profit;
+}
+
 utils::Matrix Instance::DP(std::vector<uint16_t>& A, uint16_t a, uint16_t b) const
 {
 	if (A.empty())
@@ -338,7 +384,7 @@ int Instance::mainloop_insertionHeuristic(int16_t & t, std::vector <uint16_t> & 
 	{
 		case core::heuristic_ratio::RATIO_A:
 		{
-			std::function<int(int16_t, uint16_t, uint16_t)> computation = [&](int16_t C, uint16_t p, uint16_t w)
+			std::function<double (int16_t, uint16_t, uint16_t)> computation = [&](int16_t C, uint16_t p, uint16_t w)
 			{ return (double)C / (double)w; };
 			computeRatioInsertion(ratio, orders, t, computation);
 
@@ -347,7 +393,7 @@ int Instance::mainloop_insertionHeuristic(int16_t & t, std::vector <uint16_t> & 
 
 		case core::heuristic_ratio::RATIO_B:
 		{
-			std::function<int(int16_t, uint16_t, uint16_t)> computation = [&](int16_t C, uint16_t p, uint16_t w)
+			std::function<double(int16_t, uint16_t, uint16_t)> computation = [&](int16_t C, uint16_t p, uint16_t w)
 			{ return ((double)C - (double)p) / (double)w; };
 			computeRatioInsertion(ratio, orders, t, computation);
 
@@ -356,14 +402,12 @@ int Instance::mainloop_insertionHeuristic(int16_t & t, std::vector <uint16_t> & 
 
 		case core::heuristic_ratio::RATIO_C:
 		{
-			std::function<int(int16_t, uint16_t, uint16_t)> computation = [&](int16_t C, uint16_t p, uint16_t w)
+			std::function<double(int16_t, uint16_t, uint16_t)> computation = [&](int16_t C, uint16_t p, uint16_t w)
 			{ return ((double)C / (double)w) + (((double)C - (double)p) / (double)w); };
 			computeRatioInsertion(ratio, orders, t, computation);
 
 			break;
 		}
-
-
 
 
 		default:
@@ -376,7 +420,7 @@ int Instance::mainloop_insertionHeuristic(int16_t & t, std::vector <uint16_t> & 
 	for (uint16_t i : orders)
 	{
 		std::vector<uint16_t>::iterator found(std::find(L.begin(), L.end(), i));
-		if (ratio.at(i) == -1 and found != L.end())
+		if (ratio.at(i) == std::numeric_limits<double>::infinity() and found != L.end())
 		{
 			L.erase(found);
 		}
@@ -413,6 +457,44 @@ int Instance::mainloop_insertionHeuristic(int16_t & t, std::vector <uint16_t> & 
 	}
 
 	return 0;
+}
+
+std::vector<uint16_t> Instance::Heuristic(core::heuristic_name hName, core::heuristic_ratio hRatio, std::chrono::time_point<std::chrono::system_clock>& start, std::vector<double> & duration)	const
+{
+
+	std::vector <uint16_t> seq;
+
+	switch (hName)
+	{
+
+		case core::heuristic_name::INSERT:
+		{
+			seq = Heuristic1(hRatio);
+			break;
+		}
+
+		case core::heuristic_name::INSERT_DP:
+		{
+			seq = Heuristic3(hRatio);
+			break;
+		}
+
+		default:
+		{
+			break;
+		}
+
+	}
+
+	auto end = std::chrono::system_clock::now();
+	std::chrono::duration<double> elapsed_seconds = end - start;
+	std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+
+	duration.push_back(elapsed_seconds.count());
+
+	start = end;
+
+	return seq;
 }
 
 std::vector<uint16_t> Instance::Heuristic1(core::heuristic_ratio HeuristicRatio) const
@@ -492,7 +574,7 @@ std::vector<uint16_t> Instance::Heuristic2() const
 	return seq;
 }
 
-std::vector<uint16_t> Instance::Heuristic3() const
+std::vector<uint16_t> Instance::Heuristic3(core::heuristic_ratio HeuristicRatio) const
 {
 	
 	int16_t t(0);
@@ -508,13 +590,13 @@ std::vector<uint16_t> Instance::Heuristic3() const
 		if (found == sequence.end())
 		{
 			orders.push_back(i);
-			ratio.emplace(i, -1.0);
+			ratio.emplace(i, std::numeric_limits<double>::lowest());
 		}
 	} 
 
+
 	while (t <= _dmax)
 	{
-
 		std::vector<uint16_t> L(orders);
 		for (uint16_t i : L)
 		{
@@ -524,19 +606,82 @@ std::vector<uint16_t> Instance::Heuristic3() const
 				if (i != j)
 				{
 					A.insert(j);
-				} 
+				}
 			}
 
+		
+
 			if (_earliestCompletionTime[i][t] == -1)
-				ratio[i] = -1;
+			{
+				ratio[i] = std::numeric_limits<double>::lowest();
+			}
 			else
-				ratio[i] = ((double)_w[i]/ (double)_earliestCompletionTime[i][t]) + (double)DPUpperBound(_earliestCompletionTime[i][t], A);
-		} 
+			{
+				
+				switch (HeuristicRatio)
+				{
+					
+					case core::heuristic_ratio::NO_RATIO:
+					{
+						ratio[i] = (double)_w[i] + (double)DPUpperBound(_earliestCompletionTime[i][t], A);
+						
+					
+						break;
+					}
+
+
+					case core::heuristic_ratio::RATIO_A:
+					{
+						std::function<double(int16_t, uint16_t, uint16_t)> computationA = [&](int16_t C, uint16_t p, uint16_t w)
+						{ return (double)w/(double)C; };
+
+						ratio[i] = computationA(_earliestCompletionTime[i][t],_p[i],_w[i]) + (double)DPUpperBound(_earliestCompletionTime[i][t], A) / (double)((double)_dmax-(double)_earliestCompletionTime[i][t]);
+
+
+
+						break;
+					}
+
+					case core::heuristic_ratio::RATIO_B:
+					{
+						std::function<double(int16_t, uint16_t, uint16_t)> computationB = [&](int16_t C, uint16_t p, uint16_t w)
+						{ return (double)w / ((double)C - (double)p); };
+
+						ratio[i] = computationB(_earliestCompletionTime[i][t], _p[i], _w[i]) + (double)DPUpperBound(_earliestCompletionTime[i][t], A) / (double)((double)_dmax - (double)_earliestCompletionTime[i][t]);
+
+
+
+
+
+						break;
+					}
+
+					case core::heuristic_ratio::RATIO_C:
+					{
+						std::function<double (int16_t, uint16_t, uint16_t)> computationC = [&](int16_t C, uint16_t p, uint16_t w)
+						{ return ((double)w / (double)C) + ( (double)w/((double)C - (double)p) ); };
+
+						ratio[i] = computationC(_earliestCompletionTime[i][t], _p[i], _w[i]) + (double)DPUpperBound(_earliestCompletionTime[i][t], A) / (double)((double)_dmax - (double)_earliestCompletionTime[i][t]);
+
+
+
+						break;
+					}
+
+					default:
+					{
+						break;
+					}
+
+				}
+
+			}
+		}
 
 		for (uint16_t i : orders)
 		{
 			std::vector<uint16_t>::iterator found(std::find(L.begin(), L.end(), i));
-			if (ratio.at(i) == -1)
+			if (ratio.at(i) == std::numeric_limits<double>::lowest())
 			{
 				L.erase(found);
 			}
@@ -553,6 +698,8 @@ std::vector<uint16_t> Instance::Heuristic3() const
 			}
 
 		);
+
+		
 
 		if (not L.empty())
 		{
@@ -574,7 +721,7 @@ std::vector<uint16_t> Instance::Heuristic3() const
 
 	}
 
-	return sequence; 
+	return sequence;
 }
 
 uint16_t Instance::computeProfit(const std::vector<uint16_t>& seq) const
@@ -621,6 +768,35 @@ uint16_t Instance::DPUpperBound(uint16_t tinit, const std::set<uint16_t> & visit
 	return f.at(last).at(0);
 }
 
+uint16_t Instance::DPUpperBoundClassic(uint16_t tinit, const std::set<uint16_t>& visited) const
+{
+	if (visited.size() == _n)
+	{
+		return 0;
+	}
+
+
+	std::vector<uint16_t> A;
+
+	for (uint16_t i(0); i < _n; ++i)
+	{
+		A.push_back(i);
+	}
+
+	if (A.empty())
+	{
+		return 0;
+	}
+
+
+	utils::Matrix f(DP(A, tinit, _dmax + 1));
+
+	uint16_t last(A.at(A.size() - 1));
+
+
+	return f.at(last).at(0);
+}
+
 uint16_t Instance::MooreUpperBound(uint16_t tinit, const std::set<uint16_t>& visited) const
 {
 	// get list of candidate jobs
@@ -644,54 +820,47 @@ uint16_t Instance::MooreUpperBound(uint16_t tinit, const std::set<uint16_t>& vis
 		}
 	);
 
-	std::vector<uint16_t> late;
-	do
+	std::vector<uint16_t> A;
+	int16_t pA(tinit);
+	
+	for (uint16_t i : orders)
 	{
 
-		// get list of late jobs from tinit
-		late.clear();
-
-		int16_t t(tinit);
-		for (uint16_t i : orders)
+		if (pA + _p[i] <= _d[i])
 		{
-			if (t + _p[i] > _d[i])
-			{
-				late.push_back(i);
-			}
-			t += _p[i];
-
+			A.push_back(i);
+			pA += _p[i];
 		}
-		//std::cout << "nb lates = " << late.size() << std::endl;
+		else
+		{
+			A.push_back(i);
+			pA += _p[i];
 
-		std::vector<uint16_t>::iterator longestLateJob
-		(
-			std::max_element
+			std::vector<uint16_t>::iterator longestAcceptedJob
 			(
-				late.begin(),
-				late.end(),
-				[this](uint16_t x, uint16_t y)
-				{
-					return _p[x] >= _p[y];
-				}
-			)
-		);
-		
-		if (late.empty())
-		{
-			break;
+				std::max_element
+				(
+					A.begin(),
+					A.end(),
+					[this](uint16_t x, uint16_t y)
+					{
+						return _p[x] >= _p[y];
+					}
+				)
+			);
+
+			uint16_t k(*longestAcceptedJob);
+			std::vector<uint16_t>::iterator toRemove(std::find(A.begin(), A.end(), k));
+
+			pA = pA - _p[k];
+
+			A.erase(toRemove);
 		}
+	}
 
-		// remove k from orders
-		uint16_t k(*longestLateJob);
-		//std::cout << "k=" << k << std::endl;
-		std::vector<uint16_t>::iterator toRemove(std::find(orders.begin(), orders.end(), k));
 
-		orders.erase(toRemove);
-		
 
-	} while (not late.empty());
-
-	if (orders.empty())
+	if (A.empty())
 		return 0;
 
 	std::vector<uint16_t> N;
@@ -699,6 +868,7 @@ uint16_t Instance::MooreUpperBound(uint16_t tinit, const std::set<uint16_t>& vis
 	{
 		N.push_back(k);
 	}
+
 	
 	// sort by increasing w
 	std::sort(N.begin(), N.end(),
@@ -709,10 +879,11 @@ uint16_t Instance::MooreUpperBound(uint16_t tinit, const std::set<uint16_t>& vis
 	);
 
 	uint16_t wTotal(0);
-	for (uint16_t l(0); l < orders.size(); ++l)
+	for (uint16_t l(0); l < A.size(); ++l)
 	{
 		wTotal += _w[N.at(l)];
 	}
+
 
 
 	return wTotal;
@@ -737,7 +908,58 @@ uint16_t Instance::MILPUpperBound(uint16_t tinit, const std::set<uint16_t>& visi
 		return 0;
 	}
 
-	return run(_datfile,numThread, A, tinit,100);
+	milp M(numThread, _datfile,  tinit,_T,A);
+
+	uint16_t profit = M.run();
+
+	return profit;
+}
+
+uint16_t Instance::UpperBound(core::upperBound_name ubName, int16_t tinit, const std::set<uint16_t>& visited, int numThread, std::chrono::time_point<std::chrono::system_clock>& start, std::vector<double>& duration) const
+{
+	uint16_t ub(UINT16_MAX);
+
+	switch (ubName)
+	{
+		case core::upperBound_name::Milp:
+		{
+
+			ub = MILPUpperBound(tinit, visited, numThread);
+			break;
+		}
+
+		case core::upperBound_name::Moore:
+		{
+			ub = MooreUpperBound(tinit, visited);
+
+
+			break;
+		}
+
+		case core::upperBound_name::DP:
+		{
+			ub = DPUpperBound(tinit, visited);
+			break;
+		}
+
+		default:
+		{
+			break;
+		}
+
+
+	}
+
+	auto end = std::chrono::system_clock::now();
+	std::chrono::duration<double> elapsed_seconds = end - start;
+	std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+
+	duration.push_back(elapsed_seconds.count());
+
+	start = end;
+
+
+	return ub;
 }
 
 uint16_t Instance::Heuristic1LowerBound(uint16_t tinit, const std::vector<uint16_t>& seq,  const std::set<uint16_t>& visited, core::heuristic_ratio HeuristicRatio) const
@@ -759,6 +981,12 @@ uint16_t Instance::Heuristic1LowerBound(uint16_t tinit, const std::vector<uint16
 	return computeProfit(sequence);
 }
 
+std::ostream & Instance::printCharacteristics(std::ostream& oss, char delim) const
+{
+	oss << getN() << delim << getDL() << delim << getDU() << delim << utils::datfile::fromCorrLevel(getCorrLevel()) << delim << getInstNum();
+	return oss;
+}
+
 void Instance::printSequence(const std::vector<uint16_t>& seq) const
 {
 		  
@@ -767,7 +995,7 @@ void Instance::printSequence(const std::vector<uint16_t>& seq) const
 	for (uint16_t i(0); i < _n; ++i)
 	{
 		x.emplace(0, std::map<uint16_t, uint16_t>());
-		for (uint16_t t(0); t <= _dmax; ++t)
+		for (uint16_t t(0); t < _dmax; ++t)
 		{
 			x[i].emplace(t,0);
 		}
@@ -775,11 +1003,12 @@ void Instance::printSequence(const std::vector<uint16_t>& seq) const
 
 	uint16_t t(0);
 	std::vector<uint16_t> L(seq);
-	while (t <= _dmax+1)
+	while (not L.empty())
 	{
-		if (not seq.empty())
+		if (not L.empty())
 		{
 			uint16_t j(*L.begin());
+			std::cout << "j=" << j << std::endl;
 
 			int16_t tend(_earliestCompletionTime[j][t]);
 			if (tend != -1)
@@ -790,6 +1019,7 @@ void Instance::printSequence(const std::vector<uint16_t>& seq) const
 					x[j][tt] = 1;
 				}
 
+
 				t = tend;
 			}
 			else
@@ -797,16 +1027,27 @@ void Instance::printSequence(const std::vector<uint16_t>& seq) const
 				std::cout << "could not place j=" << j << " , t= " << t << " =" << _earliestCompletionTime[j][t]<< std::endl;
 				break;
 			}
-			L.erase(std::find(L.begin(), L.end(), j));
+			std::vector<uint16_t>::iterator it = std::find(L.begin(), L.end(), j);
+
+			if (it != L.end()) 
+				L.erase(it);
 		}
 	}
+
+
+	std::cout << "  ";
+	for (uint16_t t(0); t < _dmax; ++t)
+	{
+		std::cout << _E[t] << " ";
+	}
+	std::cout << std::endl;
 
 	for (uint16_t i(0); i < _n; ++i)
 	{
 		std::cout << i << " : ";
-		for (uint16_t t(0); t <= _dmax; ++t)
+		for (uint16_t t(0); t < _dmax; ++t)
 		{
-			std::cout << x.at(i).at(t) << " ";
+			std::cout << _e[i]*x.at(i).at(t) << " ";
 		}
 		std::cout << std::endl;
 	}
@@ -860,6 +1101,9 @@ Instance* Instance::load(const char* datname)
 	std::ifstream f(datname);
 	std::string line;
 
+	utils::datfile::s_characteristics * s = utils::datfile::getCharacteristicsFromName(datname);
+
+
 	size_t n(0);
 	uint16_t T(0), dmax(0);
 	uint16_t* p = nullptr, * d = nullptr, * w = nullptr, * e = nullptr, * E = nullptr;
@@ -889,7 +1133,7 @@ Instance* Instance::load(const char* datname)
 			case  utils::OptionsParams::OrderNb:
 			{
 				n = atoi(values.c_str());
-				T = 100;//(n * PMAX) -1 ;	
+				T = 1440;//(n * PMAX) -1 ;	
 				break;
 			}
 
@@ -973,5 +1217,5 @@ Instance* Instance::load(const char* datname)
 	f.close();
 
 
-	return new Instance(datname, n, p, d, w, e, E, T, dmax);
+	return new Instance(s,datname, n, p, d, w, e, E, T, dmax);
 }
