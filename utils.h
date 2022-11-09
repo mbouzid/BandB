@@ -4,9 +4,10 @@
 #include <set>
 #include <string>
 #include <random>
-#include <map>
 #define NELEMS(x)  (sizeof(x) / sizeof((x)[0]))
-#define PMAX 100
+#define PMAX 10
+#define TMAX 96//1440
+
 
 namespace utils
 {
@@ -21,8 +22,6 @@ namespace utils
 		Energy,
 		EnergyPeriods,
 	};
-
-	typedef std::map<uint16_t, std::map<uint16_t, uint16_t>> Matrix;
 
 	std::set<uint16_t> 	emptySet();
 	std::vector<uint16_t> emptyVector();

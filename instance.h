@@ -62,8 +62,8 @@ class Instance
 
 		for (size_t i(0); i < _n; ++i)
 		{
-			_earliestCompletionTime[i] = (int16_t*)calloc(_dmax+1, sizeof(int16_t));
-			for (uint16_t t(0); t <= _dmax; ++t)
+			_earliestCompletionTime[i] = (int16_t*)calloc(_T+1, sizeof(int16_t));
+			for (uint16_t t(0); t <= _T; ++t)
 			{
 				_earliestCompletionTime[i][t] = computeEarliestCompletionTime(i, t);
 			}
@@ -127,8 +127,8 @@ public:
 
 		for (size_t i(0); i < _n; ++i)
 		{
-			_earliestCompletionTime[i] = (int16_t*)calloc(_._dmax+1, sizeof(int16_t));
-			memcpy(_earliestCompletionTime[i], _._earliestCompletionTime[i], sizeof(int16_t) * _._dmax+1);
+			_earliestCompletionTime[i] = (int16_t*)calloc(_._T+1, sizeof(int16_t));
+			memcpy(_earliestCompletionTime[i], _._earliestCompletionTime[i], sizeof(int16_t) * _._T+1);
 		}
 	}
 
@@ -211,12 +211,14 @@ public:
 	}
 
 
+	std::vector<uint16_t> getSeqFromDP(const core::Matrix& f, std::vector<uint16_t>& A, int16_t a, int16_t b) const;
+
 	/* check feasibility from tinit with sequence */
 	uint16_t checkProfit(int16_t tinit, const std::set<uint16_t> & visited) const;
 
-	utils::Matrix DP(std::vector<uint16_t>& A, uint16_t a, uint16_t b) const;
+	core::Matrix DP(std::vector<uint16_t>& A, uint16_t a, uint16_t b) const;
 
-	utils::Matrix DP1(std::vector<uint16_t>& A, uint16_t a, uint16_t b) const;
+	core::Matrix DP1(std::vector<uint16_t>& A, uint16_t a, uint16_t b) const;
 
 	int mainloop_insertionHeuristic(int16_t & t, std::vector <uint16_t>& orders, std::vector <uint16_t>& seq, uint16_t & profit, core::heuristic_ratio HeuristicRatio) const;
 	
@@ -225,21 +227,33 @@ public:
 	std::vector<uint16_t> Heuristic2() const;
 	std::vector<uint16_t> Heuristic3(core::heuristic_ratio HeuristicRatio) const;
 	
-	
+	std::vector<uint16_t> Heuristic4() const;
+
 	std::vector<uint16_t> Heuristic(core::heuristic_name hName, core::heuristic_ratio hRatio, std::chrono::time_point<std::chrono::system_clock>& start, std::vector<double> & duration) const;
 	
 	uint16_t computeProfit(const std::vector <uint16_t> & ) const;
 
-	uint16_t DPUpperBound(uint16_t tinit, const std::set<uint16_t>& visited) const;
-	uint16_t DPUpperBoundClassic(uint16_t tinit, const std::set<uint16_t>& visited) const;
+	std::vector<uint16_t> DPUpperBound(uint16_t tinit, const std::set<uint16_t>& visited) const;
+	std::vector<uint16_t> DPUpperBoundClassic(uint16_t tinit, const std::set<uint16_t>& visited) const;
 
-	uint16_t MooreUpperBound(uint16_t tinit, const std::set<uint16_t>& visited) const;
-	uint16_t MILPUpperBound(uint16_t tinit, const std::set<uint16_t>& visited, int numThread) const;
+	std::vector<uint16_t> MooreUpperBound(uint16_t tinit, const std::set<uint16_t>& visited) const;
+	std::vector<uint16_t> MILPUpperBound(uint16_t tinit, const std::set<uint16_t>& visited, int numThread) const;
 	
-	uint16_t UpperBound(core::upperBound_name ubName, int16_t tinit, const std::set<uint16_t>& visited, int numThread, std::chrono::time_point<std::chrono::system_clock>& start, std::vector<double>& duration) const;
+	std::vector<uint16_t> UpperBound(core::upperBound_name ubName, int16_t tinit, const std::set<uint16_t>& visited, int numThread, std::chrono::time_point<std::chrono::system_clock>& start, std::vector<double>& duration) const;
 	
 	uint16_t Heuristic1LowerBound(uint16_t tinit, const std::vector<uint16_t> & seq, const std::set<uint16_t>& visited, core::heuristic_ratio HeuristicRatio) const;
 
+
+	uint16_t getTotalImpact(const std::vector<uint16_t>& sequence) const
+	{
+		uint16_t impact(0);
+		for (uint16_t j : sequence)
+		{
+			impact += _e[j]*_p[j];
+		}
+
+		return impact;
+	}
 	
 
 

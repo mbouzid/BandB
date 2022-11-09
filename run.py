@@ -3,7 +3,7 @@ import re
 import sys
 import subprocess as sp
 
-_exec = '.\\x64\\Release\\BandB.exe'
+_exec = '.\\cmake-build-release\\BandB.exe'
 delim =";"
 assert (len(sys.argv) > 1), "An argument must be given"
 

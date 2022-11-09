@@ -6,7 +6,6 @@
 #include <map>
 #include <algorithm>
 #include <numeric>
-#include "milp.h"
 
 int16_t Instance::computeEarliestCompletionTime(uint16_t i, uint16_t t) const
 {
@@ -47,6 +46,39 @@ int16_t Instance::computeEarliestCompletionTime(uint16_t i, uint16_t t) const
 uint16_t Instance::energyMinimalInInterval(uint16_t a, uint16_t b) const
 {
 	return *std::min_element(_E+a,_E+b);
+}
+
+std::vector<uint16_t> Instance::getSeqFromDP(const core::Matrix& f,  std::vector<uint16_t> & A, int16_t a, int16_t b) const
+{
+	std::vector<uint16_t> sequence;
+
+	uint16_t first(*A.begin());
+
+
+
+	if (f.at(first).at(a).getAccept())
+	{
+		sequence.push_back(first);
+	}
+
+	int16_t t(f.at(first).at(a).getTime());
+
+	A.erase(A.begin());
+
+	for (uint16_t j : A)
+	{
+		if (f.at(j).at(t).getAccept())
+		{
+			sequence.push_back(j);	
+			//std::cout << "\tj=" << j << " t=" << t << std::endl;
+		}
+		
+		t = f.at(j).at(t).getTime();
+
+	}
+
+
+	return sequence;
 }
 
 uint16_t Instance::checkProfit(int16_t tinit, const std::set<uint16_t>& visited) const
@@ -95,144 +127,88 @@ uint16_t Instance::checkProfit(int16_t tinit, const std::set<uint16_t>& visited)
 	return profit;
 }
 
-utils::Matrix Instance::DP(std::vector<uint16_t>& A, uint16_t a, uint16_t b) const
+core::Matrix Instance::DP(std::vector<uint16_t>& A, uint16_t a, uint16_t b) const
 {
 	if (A.empty())
-		return utils::Matrix();
+		return core::Matrix();
 
-	// sort by LDD
-	std::sort
-	(
-		A.begin(), A.end(),
-		[this](uint16_t i, uint16_t j)
-		{
-			return _d[i] > _d[j];
-		}
-	);
+	uint16_t n(A.size());
 
-	uint16_t i(*A.begin());
-	std::map < uint16_t, std::map<uint16_t, uint16_t> > f;
+	
+	std::sort(A.begin(), A.end(), [this](uint16_t x, uint16_t y) {return _d[x] <= _d[y]; });
+	uint16_t i(A.at(n - 1));
 
-	size_t k(0);
-	for (size_t ii(0); ii < A.size(); ++ii)
+
+	core::Matrix f;
+
+	int16_t T(b);
+
+	for (int16_t t(a); t <= b; ++t)
 	{
-		uint16_t j(A.at(ii));
-
-		uint16_t T(0);
-		if (f.find(j) == f.end())
+		f.emplace(i, std::map<uint16_t, core::tupleDP>());
+		int16_t tt(t+_p[i]);
+		if (tt > _d[i]+1 or tt > b)
 		{
-			f.emplace(j, std::map <uint16_t, uint16_t>());
-		}
-
-		if (j == i)
-		{
-			std::vector<uint16_t> sub(A.begin() + (k + 1), A.end());
-
-			for (uint16_t x : sub)
-			{
-				T += _p[x];
-			}
-			T += 1;
-
-			for (uint16_t t(0); t <= T; ++t)
-			{
-				if (a + _p[j] + t <= std::min((uint16_t)b,(uint16_t)(_d[j]+1)))
-				{
-					f[j].emplace(t, _w[j]);
-				}
-				else
-				{
-					f[j].emplace(t, 0);
-				}
-			}
+			// rejet = t
+			f[i].emplace(t, core::tupleDP(_w[i], false, t));
 		}
 		else
 		{
-			for (uint16_t x : A)
-			{
-				T += _p[x];
-			}
-			T += 1;
-			for (uint16_t t(0); t <= T; ++t)
-			{
-				f[j].emplace(t, 0);
-			}
+			// accept = t+p[i]
+			f[i].emplace(t, core::tupleDP(0, true, tt));
 		}
-
-		++k;
-
 	}
 
 
+	std::vector<uint16_t> B(A);
+	std::sort(B.begin(), B.end(), [this](uint16_t x, uint16_t y) {return _d[x] >= _d[y]; });
 
-	k = 1;
-	uint16_t jprev(i);
+	B.erase(B.begin());
 
-	for (size_t ii(1); ii < A.size(); ++ii)
+	for (uint16_t j : B)
 	{
-		uint16_t j(A.at(ii));
-
-		uint16_t T(0);
-		std::vector<uint16_t> sub(A.begin() + (k + 1), A.end());
-		for (uint16_t x : sub)
+		f.emplace(j, std::map<uint16_t, core::tupleDP>());
+		for (int16_t t(a); t <= b; ++t)
 		{
-			T += _p[x];
+			f[j].emplace(t, core::tupleDP(0, false, t));
 		}
-		T += 1;
-
-		for (uint16_t t(0); t <= T; ++t)
-		{
-			uint16_t PHI1(0);
-			uint16_t PHI2(0);
-
-			if (t + _p[j] + a <= std::min((uint16_t)b, (uint16_t)(_d[j]+1)))
-			{
-				PHI1 = _w[j] + f[jprev][t + _p[j]];
-			}
-			else
-			{
-				PHI1 = f[jprev][t + _p[j]];
-			}
-
-			uint16_t sum2(0);
-			for (size_t l(0); l < k + 1; ++l)
-			{
-				sum2 += _p[A.at(l)];
-			}
-
-
-			if (sum2 + t + a <= std::min((uint16_t)b, (uint16_t)(_d[j] + 1)))
-			{
-				PHI2 = f[jprev][t] + _w[j];
-			}
-			else
-			{
-				PHI2 = f[jprev][t];
-			}
-
-			if (PHI1 < PHI2)
-			{
-				f[j][t] = PHI2;
-			}
-			else
-			{
-				f[j][t] = PHI1;
-			}
-		}						   
-
-
-		k++;
-		jprev = j;
-
 	}
+
+	for (uint16_t j : B)
+	{
+		for (int16_t t(a); t <= b; ++t)
+		{
+			int16_t tt(t + _p[j]);
+			if ((tt > _d[j]+1) or (tt >= b))
+			{
+				f[j][t].setProfit(f.at(i).at(t).getProfit() + _w[j]);
+			}
+			else
+			{
+				if (f.at(i).at(t).getProfit() + _w[j] <= f.at(i).at(tt).getProfit())
+				{
+					f[j][t].setProfit(f.at(i).at(t).getProfit() + _w[j]);
+				}
+				else
+				{
+					f[j][t].setAccept(true);
+					f[j][t].setProfit(f.at(i).at(tt).getProfit());
+					f[j][t].setTime(tt);
+				}
+
+			}
+		}
+		i = j;
+	}
+
 
 	return f;
 }
 
-utils::Matrix Instance::DP1(std::vector<uint16_t>& A, uint16_t a, uint16_t b) const
+core::Matrix Instance::DP1(std::vector<uint16_t>& A, uint16_t a, uint16_t b) const
 {
 	if (A.empty())
-		return utils::Matrix();
+		return core::Matrix();
 
 	// sort by LDD
 	std::sort
@@ -245,7 +221,7 @@ utils::Matrix Instance::DP1(std::vector<uint16_t>& A, uint16_t a, uint16_t b) co
 	);
 
 	uint16_t i(*A.begin());
-	std::map < uint16_t, std::map<uint16_t, uint16_t> > f;
+	core::Matrix f;
 
 	uint16_t k(0);
 	for (size_t ii(0); ii < A.size(); ++ii)
@@ -254,7 +230,7 @@ utils::Matrix Instance::DP1(std::vector<uint16_t>& A, uint16_t a, uint16_t b) co
 		
 		if (f.find(j) == f.end())
 		{
-			f.emplace(j, std::map <uint16_t, uint16_t>());
+			f.emplace(j, std::map <uint16_t, core::tupleDP>());
 		}
 
 		if (j == i)
@@ -275,11 +251,11 @@ utils::Matrix Instance::DP1(std::vector<uint16_t>& A, uint16_t a, uint16_t b) co
 			{
 				if (a + t  + _p[j] <= std::min(b,(uint16_t)(_d[j] + 1)))
 				{
-					f[j].emplace(t, _w[j]);
+					f[j].emplace(t, core::tupleDP(_w[j],false,a+t+_p[j]));
 				}
 				else
 				{	
-					f[j].emplace(t, 0);
+					f[j].emplace(t, core::tupleDP(0,true,t+_p[j]));
 				}
 			}
 		}
@@ -297,7 +273,7 @@ utils::Matrix Instance::DP1(std::vector<uint16_t>& A, uint16_t a, uint16_t b) co
 
 			for (uint16_t t(0); t <= T; ++t)
 			{
-				f[j].emplace(t, 0);
+				f[j].emplace(t, core::tupleDP(0,false,t));
 			}
 		}
 
@@ -324,18 +300,18 @@ utils::Matrix Instance::DP1(std::vector<uint16_t>& A, uint16_t a, uint16_t b) co
 		T = std::min(T, b);
 		for (uint16_t t(0); t <= T; ++t)
 		{
-			uint16_t PHI1(0);
-			uint16_t PHI2(0);
+			core::tupleDP PHI1;
+			core::tupleDP PHI2;
 
 			uint16_t tt(std::min(T,(uint16_t)(t + _p[j])));
 
 			if (a + t + _p[j]  <= std::min(b, (uint16_t)(_d[j] + 1)))
 			{
-				PHI1 = _w[j] + f.at(jprev).at(tt);
+				PHI1 = core::tupleDP(_w[j] + f.at(jprev).at(tt).getProfit(),false,a+t);
 			}
 			else
 			{
-				PHI1 = f.at(jprev).at(tt);
+				PHI1 = core::tupleDP(f.at(jprev).at(tt).getProfit(),true,a+t+_p[j]);
 			}
 
 			uint16_t sum2(0);
@@ -348,7 +324,7 @@ utils::Matrix Instance::DP1(std::vector<uint16_t>& A, uint16_t a, uint16_t b) co
 
 			if (a + sum2 + t <= std::min(b, (uint16_t)(_d[j] + 1)))
 			{
-				PHI2 = f.at(jprev).at(t) + _w[j];
+				PHI2 = core::tupleDP(f.at(jprev).at(t).getProfit() + _w[j],true,a+sum2+t);
 			}
 			else
 			{
@@ -356,7 +332,7 @@ utils::Matrix Instance::DP1(std::vector<uint16_t>& A, uint16_t a, uint16_t b) co
 				PHI2 = f.at(jprev).at(t);
 			}
 
-			if (PHI1 < PHI2)
+			if (PHI1.getProfit() < PHI2.getProfit())
 			{
 				f[j][t] = PHI2;
 			}
@@ -426,6 +402,7 @@ int Instance::mainloop_insertionHeuristic(int16_t & t, std::vector <uint16_t> & 
 		}
 	}
 
+
 	std::sort
 	(
 		L.begin(),
@@ -436,6 +413,10 @@ int Instance::mainloop_insertionHeuristic(int16_t & t, std::vector <uint16_t> & 
 		}
 	);
 
+	/*for (uint16_t k : L)
+	{
+		std::cout << k << " :" << ratio.at(k) << std::endl;
+	}*/
 
 
 	if (not L.empty())
@@ -445,8 +426,13 @@ int Instance::mainloop_insertionHeuristic(int16_t & t, std::vector <uint16_t> & 
 
 		if (_earliestCompletionTime[j][t] != -1)
 		{
+
+			//std::cout << "\tj=" << j << " t=" << t << " profit=" << _w[j] << std::endl;
+
 			t = _earliestCompletionTime[j][t];
 			profit += _w[j];
+
+
 			orders.erase(std::find(orders.begin(), orders.end(), j));
 			seq.push_back(j);
 		}
@@ -464,6 +450,7 @@ std::vector<uint16_t> Instance::Heuristic(core::heuristic_name hName, core::heur
 
 	std::vector <uint16_t> seq;
 
+
 	switch (hName)
 	{
 
@@ -473,9 +460,22 @@ std::vector<uint16_t> Instance::Heuristic(core::heuristic_name hName, core::heur
 			break;
 		}
 
+		case core::heuristic_name::INSERT_INTV:
+		{
+			seq = Heuristic2();
+			break;
+		}
+
+
 		case core::heuristic_name::INSERT_DP:
 		{
 			seq = Heuristic3(hRatio);
+			break;
+		}
+
+		case core::heuristic_name::DPH:
+		{
+			seq = Heuristic4();
 			break;
 		}
 
@@ -509,6 +509,8 @@ std::vector<uint16_t> Instance::Heuristic1(core::heuristic_ratio HeuristicRatio)
 		orders.push_back(i);
 	}
 
+	//std::cout << "H_1" << HeuristicRatio << std::endl;
+
 	while (t <= _dmax)
 	{
 		int res = mainloop_insertionHeuristic(t, orders, seq, profit, HeuristicRatio);
@@ -517,6 +519,8 @@ std::vector<uint16_t> Instance::Heuristic1(core::heuristic_ratio HeuristicRatio)
 			break;
 		}
 	}
+
+	//std::cout << "----------------" << std::endl;
 
 	return seq;
 
@@ -528,20 +532,39 @@ std::vector<uint16_t> Instance::Heuristic1(core::heuristic_ratio HeuristicRatio)
 std::vector<uint16_t> Instance::Heuristic2() const
 {					
 
-	std::set<uint16_t> L;
+    std::cout << "heuristic 2 " << std::endl;
+	std::vector<uint16_t> L;
 	for (uint16_t i(0); i < _n; ++i)
 	{
-		L.insert(i);
+		L.push_back(i);
 	}
 
+	std::sort
+	(
+		L.begin(),
+		L.end(),
+		[this](uint16_t x, uint16_t y)
+		{
+			return _d[x] <= _d[y];
+		}	 
+	);
+
+    for (uint16_t k : L)
+    {
+        std::cout << k << " ";
+    }
+    std::cout << std::endl;
 	uint16_t pmax(*std::max_element(_p, _p + _n));
 	uint16_t profit(0);
+
 
 	uint16_t a(0), b(pmax - 1);
 	std::vector<uint16_t> seq;
 
-	while (b <= _dmax)
+	while (b <= _dmax+1)
 	{
+		//std::cout << "a=" << a << "b=" << b << std::endl;
+
 		uint16_t Emin(energyMinimalInInterval(a, b));
 
 		std::vector<uint16_t> A;
@@ -552,16 +575,42 @@ std::vector<uint16_t> Instance::Heuristic2() const
 				A.push_back(i);
 			}
 		}
-		utils::Matrix f(DP1(A, a, b));
-		
-		if (not f.empty())
+
+		/*std::cout << "A=" ;
+		for (uint16_t j : A)
 		{
-			uint16_t j(A.at(A.size() - 1));
-			seq.push_back(j);
-			profit += _w[j];
-			a += _p[j];
-			b += _p[j];
-			L.erase(j);
+			std::cout << j << " ";
+		}
+		std::cout << std::endl;	*/
+
+		if (not A.empty())
+		{
+			core::Matrix f(DP(A, a, b));
+			std::vector<uint16_t> subseq(getSeqFromDP(f, A, a, b));
+
+			if (not subseq.empty())
+			{
+
+				for (uint16_t j : subseq)
+				{
+					seq.push_back(j);
+					//std::cout << "j=" << j << std::endl;
+
+					std::vector<uint16_t>::iterator toRemove(std::find(L.begin(), L.end(), j));
+
+					L.erase(toRemove);
+				}
+				profit += computeProfit(subseq);
+				a += pmax;
+				b += pmax;
+
+			}
+			else
+			{
+				a += 1;
+				b += 1;
+
+			}
 		}
 		else
 		{
@@ -590,30 +639,32 @@ std::vector<uint16_t> Instance::Heuristic3(core::heuristic_ratio HeuristicRatio)
 		if (found == sequence.end())
 		{
 			orders.push_back(i);
-			ratio.emplace(i, std::numeric_limits<double>::lowest());
+			ratio.emplace(i, std::numeric_limits<double>::infinity());
 		}
 	} 
 
+	//std::cout << "H_2" << HeuristicRatio << std::endl;
 
 	while (t <= _dmax)
 	{
+
 		std::vector<uint16_t> L(orders);
+		
+		
 		for (uint16_t i : L)
 		{
 			std::set<uint16_t> A;
-			for (uint16_t j : L)
+		
+			for (uint16_t j : sequence)
 			{
-				if (i != j)
-				{
-					A.insert(j);
-				}
+				A.insert(j);
 			}
 
-		
-
+			A.insert(i);
+			
 			if (_earliestCompletionTime[i][t] == -1)
 			{
-				ratio[i] = std::numeric_limits<double>::lowest();
+				ratio[i] = std::numeric_limits<double>::infinity();
 			}
 			else
 			{
@@ -623,21 +674,58 @@ std::vector<uint16_t> Instance::Heuristic3(core::heuristic_ratio HeuristicRatio)
 					
 					case core::heuristic_ratio::NO_RATIO:
 					{
-						ratio[i] = (double)_w[i] + (double)DPUpperBound(_earliestCompletionTime[i][t], A);
-						
-					
+						ratio[i] = (double)_w[i] - (double)computeProfit(DPUpperBound(_earliestCompletionTime[i][t], A));
 						break;
 					}
 
 
 					case core::heuristic_ratio::RATIO_A:
 					{
+
 						std::function<double(int16_t, uint16_t, uint16_t)> computationA = [&](int16_t C, uint16_t p, uint16_t w)
 						{ return (double)w/(double)C; };
 
-						ratio[i] = computationA(_earliestCompletionTime[i][t],_p[i],_w[i]) + (double)DPUpperBound(_earliestCompletionTime[i][t], A) / (double)((double)_dmax-(double)_earliestCompletionTime[i][t]);
+						int di = _d[i];
+						for (int16_t t(0); t <= _T; ++t)
+						{
+								if (_earliestCompletionTime[i][t + 1] == -1)
+								{
+									di =  _earliestCompletionTime[i][t];
+								}
+							
+						}
+						
+						double W = (double)_w[i];
+						double C = (double)_earliestCompletionTime[i][t];
+						std::vector<uint16_t> seqDP(DPUpperBound(_earliestCompletionTime[i][t], A));
+						double DP = (double)computeProfit(seqDP);
+						double Tmax = (double)_dmax + 1;
+
+						int tj = _earliestCompletionTime[i][t];
+
+						int tnext = Tmax;
+						uint16_t nextJob = i;
+						for (uint16_t x : seqDP)
+						{
+							if (_earliestCompletionTime[x][tj] < tnext and _earliestCompletionTime[x][tj] != -1)
+							{
+								tnext = _earliestCompletionTime[x][tj];
+								nextJob = x;
+							}
+						}
+
+						
 
 
+						if (DP == 0)
+						{
+							ratio[i] = (C/ W);
+						}
+						else
+						{
+							ratio[i] = (C/W) + ((double)tnext/DP);
+						}
+				
 
 						break;
 					}
@@ -645,13 +733,53 @@ std::vector<uint16_t> Instance::Heuristic3(core::heuristic_ratio HeuristicRatio)
 					case core::heuristic_ratio::RATIO_B:
 					{
 						std::function<double(int16_t, uint16_t, uint16_t)> computationB = [&](int16_t C, uint16_t p, uint16_t w)
-						{ return (double)w / ((double)C - (double)p); };
+						{ 
+							if (C - p != 0)
+								return  (double)w / ((double)C - (double)p);
+							else
+								return (double)w;
+						};
+					
+						double W = (double)_w[i];
 
-						ratio[i] = computationB(_earliestCompletionTime[i][t], _p[i], _w[i]) + (double)DPUpperBound(_earliestCompletionTime[i][t], A) / (double)((double)_dmax - (double)_earliestCompletionTime[i][t]);
+						double P = (double)_p[i];
+						double C = (double)_earliestCompletionTime[i][t];
+						int tj = _earliestCompletionTime[i][t];
+						std::vector<uint16_t> seqDP(DPUpperBound(_earliestCompletionTime[i][t], A));
+						double DP = (double)computeProfit(seqDP);
+						double Tmax = (double)_dmax + 1;
+						//ratio[i] = (W / (C-P)) + (DP / (Tmax - C));
+						//
+
+						int tnext = Tmax;
+						uint16_t nextJob = i;
+						for (uint16_t x : seqDP)
+						{
+							if (_earliestCompletionTime[x][tj] < tnext and _earliestCompletionTime[x][tj] != -1)
+							{
+								tnext = _earliestCompletionTime[x][tj];
+								nextJob = x;
+							}
+						}
 
 
 
 
+						if (DP == 0)
+						{
+							ratio[i] = ((C - P) / W);
+						}
+						else
+						{
+							ratio[i] = (((C - P) / W) + ((tnext - _p[nextJob]) / DP));
+						}
+						
+						//ratio[i] = computationB(_earliestCompletionTime[i][t], _p[i], _w[i]) + (double)computeProfit(DPUpperBound(_earliestCompletionTime[i][t], A)) / (double)((double)(_dmax+1) - (double)_earliestCompletionTime[i][t]);
+
+						/*double X = computationB(_earliestCompletionTime[i][t], _p[i], _w[i]);
+						double Y = (double)computeProfit(DPUpperBound(_earliestCompletionTime[i][t], A));
+						double Z = (double)((double)(_dmax + 1) - (double)_earliestCompletionTime[i][t]);
+						ratio[i] = X + Y / (double)_earliestCompletionTime[i][t];*/
 
 						break;
 					}
@@ -659,9 +787,35 @@ std::vector<uint16_t> Instance::Heuristic3(core::heuristic_ratio HeuristicRatio)
 					case core::heuristic_ratio::RATIO_C:
 					{
 						std::function<double (int16_t, uint16_t, uint16_t)> computationC = [&](int16_t C, uint16_t p, uint16_t w)
-						{ return ((double)w / (double)C) + ( (double)w/((double)C - (double)p) ); };
+						{ 
+							if (C - p != 0)
+								return ((double)w / (double)C) + ((double)w / ((double)C - (double)p));
+							else
+								return ((double)w / (double)C) + ( (double)w); 
+						
+						};
 
-						ratio[i] = computationC(_earliestCompletionTime[i][t], _p[i], _w[i]) + (double)DPUpperBound(_earliestCompletionTime[i][t], A) / (double)((double)_dmax - (double)_earliestCompletionTime[i][t]);
+						double W = (double)_w[i];
+
+						double P = (double)_p[i];
+						double C = (double)_earliestCompletionTime[i][t];
+						double DP = (double)computeProfit(DPUpperBound(_earliestCompletionTime[i][t], A));
+						double Tmax = (double)_dmax + 1;
+						
+
+						if (DP == 0)
+						{
+							ratio[i] = (C/W) + ((C - P) / W);
+						}
+						else
+						{
+							ratio[i] = ((C / W) + (C / DP)) + (((C - P) / W) + (C / DP));
+						}
+						
+						//ratio[i] = ((C / W) + (C / DP)) + (( (C-P) / W) + (C/DP));
+
+						//ratio[i] = computationC(_earliestCompletionTime[i][t], _p[i], _w[i]) + (double)computeProfit(DPUpperBound(_earliestCompletionTime[i][t], A)) / (double)((double)(_dmax+1) - (double)_earliestCompletionTime[i][t]);
+						//ratio[i] = computationC(_earliestCompletionTime[i][t], _p[i], _w[i]) + (double)computeProfit(DPUpperBound(_earliestCompletionTime[i][t], A)) / (double)((double)(_dmax + 1) - (double)_earliestCompletionTime[i][t]);
 
 
 
@@ -676,12 +830,13 @@ std::vector<uint16_t> Instance::Heuristic3(core::heuristic_ratio HeuristicRatio)
 				}
 
 			}
-		}
+
+		}// fin for i
 
 		for (uint16_t i : orders)
 		{
 			std::vector<uint16_t>::iterator found(std::find(L.begin(), L.end(), i));
-			if (ratio.at(i) == std::numeric_limits<double>::lowest())
+			if ( ratio.at(i) == std::numeric_limits<double>::infinity())
 			{
 				L.erase(found);
 			}
@@ -694,10 +849,15 @@ std::vector<uint16_t> Instance::Heuristic3(core::heuristic_ratio HeuristicRatio)
 			L.end(),
 			[&ratio](uint16_t x, uint16_t y)
 			{
-				return ratio.at(x) >= ratio.at(y);
+				return ratio.at(x) <= ratio.at(y);
 			}
 
 		);
+
+		/*for (uint16_t k : L)
+		{
+			std::cout << k << " :" << ratio.at(k) << std::endl;
+		} */
 
 		
 
@@ -706,7 +866,10 @@ std::vector<uint16_t> Instance::Heuristic3(core::heuristic_ratio HeuristicRatio)
 			uint16_t j(*L.begin());
 
 			if (_earliestCompletionTime[j][t] != -1)
-			{
+			{		  
+
+				//std::cout << "\tj=" << j << " t=" << t << " profit=" << _w[j] << std::endl;
+
 				sequence.push_back(j);
 				orders.erase(std::find(orders.begin(), orders.end(), j));
 				t = _earliestCompletionTime[j][t];
@@ -721,7 +884,164 @@ std::vector<uint16_t> Instance::Heuristic3(core::heuristic_ratio HeuristicRatio)
 
 	}
 
+	//std::cout << "----------------" << std::endl;
+
 	return sequence;
+}
+
+std::vector<uint16_t> Instance::Heuristic4() const
+{
+
+	std::vector<uint16_t> sequence;
+	std::vector<uint16_t> orders;
+
+	std::vector<uint16_t> R;
+
+	// remove non processable orders
+	for (int16_t i(0); i < _n; ++i)
+	{
+		if (_earliestCompletionTime[i][0] == -1)
+		{
+			R.push_back(i);
+	   }
+
+	}
+
+	// candidates jobs 
+	std::vector<uint16_t> A;
+	for (uint16_t i(0); i < _n; ++i)
+	{
+		std::vector<uint16_t>::const_iterator it(std::find(R.cbegin(), R.cend(), i));
+		if (it == R.cend())
+		{
+			A.push_back(i);
+		}
+	}
+
+	if (A.empty())
+	{
+		return sequence;
+	}
+
+	//std::cout << "H_4" << std::endl;
+
+	std::map<uint16_t, uint16_t> d;
+	// get deadline 
+	for (uint16_t i : A)
+	{
+		for (int16_t t(0); t <= _T; ++t)
+		{
+			if (_earliestCompletionTime[i][t + 1] == -1)
+			{
+				d.emplace(i, _earliestCompletionTime[i][t] - _p[i]);
+
+			}
+		}
+	}
+
+
+
+
+	// sort by deadline
+	
+	std::sort(A.begin(), A.end(), [&d](uint16_t x, uint16_t y) { return d[x] <= d[y]; });
+
+
+	/*for (uint16_t i : A)
+	{
+		std::cout << i << " :" << d[i] << std::endl;
+	}*/
+
+	int16_t T(_T);
+
+	uint16_t n(A.size());
+	uint16_t i(A.at(n-1));
+
+	core::Matrix f;
+
+	for (int16_t t(0); t <= T; ++t)
+	{
+		f.emplace(i, std::map<uint16_t, core::tupleDP>());
+		int16_t tt(_earliestCompletionTime[i][t]);
+		if ( tt == -1)
+		{
+			f[i].emplace(t, core::tupleDP(_w[i],false,t));
+		}
+		else
+		{
+			f[i].emplace(t, core::tupleDP(0, true, tt));
+		}
+	}
+												  
+
+	std::vector<uint16_t> B(A);
+	std::sort(B.begin(), B.end(), [&d](uint16_t x, uint16_t y) {return d[x] >= d[y]; });
+
+	B.erase(B.begin());
+
+	for (uint16_t j : B)
+	{
+		f.emplace(j, std::map<uint16_t, core::tupleDP>());
+		for (int16_t t(0); t <= T; ++t)
+		{
+			f[j].emplace(t, core::tupleDP(0, false, t));
+		}
+	}
+
+	for (uint16_t j : B)
+	{
+		for (int16_t t(0); t <= T; ++t)
+		{
+
+			int16_t tt (_earliestCompletionTime[j][t]);
+			if (tt == -1)
+			{
+				f[j][t].setProfit(f.at(i).at(t).getProfit() + _w[j]);
+			}
+			else
+			{
+				if (f.at(i).at(t).getProfit() + _w[j] <= f.at(i).at(tt).getProfit())
+				{
+					f[j][t].setProfit(f.at(i).at(t).getProfit() + _w[j]);
+				}
+				else
+				{
+					f[j][t].setAccept (true);
+					f[j][t].setProfit(f.at(i).at(tt).getProfit());
+					f[j][t].setTime(tt);
+
+				}
+
+			}
+		}
+		i = j;
+	}
+
+	/*for (uint16_t k : A)
+	{
+		std::cout << k << "\t";
+		for (int16_t t(0); t <= _dmax + 1; ++t)
+		{
+			std::cout << _earliestCompletionTime[k][t] << " ";
+		}
+		std::cout << std::endl;
+	} */
+
+	//std::cout << "+++" << std::endl;
+
+	//std::cout << "(profit,accept,timeC,t)" << std::endl;
+	/*for (uint16_t k : A)
+	{
+		std::cout << k << "\t";
+		for (int16_t t(0); t <= _dmax+1; ++t)
+		{
+			std::cout << "(" << f.at(k).at(t).getProfit() << "," << f.at(k).at(t).getAccept() << "," << f.at(k).at(t).getTime()  << "," << t << ") ";
+		}
+		std::cout << std::endl;
+	}*/
+
+
+	return getSeqFromDP(f,A,0,_T);
 }
 
 uint16_t Instance::computeProfit(const std::vector<uint16_t>& seq) const
@@ -736,11 +1056,11 @@ uint16_t Instance::computeProfit(const std::vector<uint16_t>& seq) const
 }
 
 
-uint16_t Instance::DPUpperBound(uint16_t tinit, const std::set<uint16_t> & visited) const
+std::vector<uint16_t> Instance::DPUpperBound(uint16_t tinit, const std::set<uint16_t> & visited) const
 {
 	if (visited.size() == _n)
 	{
-		return 0;
+		return {};
 	}
 
 
@@ -756,23 +1076,20 @@ uint16_t Instance::DPUpperBound(uint16_t tinit, const std::set<uint16_t> & visit
 
 	if (A.empty())
 	{
-		return 0;
+		return {};
 	}
 
 
-	utils::Matrix f(DP(A, tinit, _dmax+1));
+	core::Matrix f(DP(A, tinit, _dmax+1));
 
-	uint16_t last(A.at(A.size() - 1));
-
-
-	return f.at(last).at(0);
+	return getSeqFromDP(f, A, tinit, _dmax + 1);
 }
 
-uint16_t Instance::DPUpperBoundClassic(uint16_t tinit, const std::set<uint16_t>& visited) const
+std::vector<uint16_t> Instance::DPUpperBoundClassic(uint16_t tinit, const std::set<uint16_t>& visited) const
 {
 	if (visited.size() == _n)
 	{
-		return 0;
+		return {};
 	}
 
 
@@ -785,19 +1102,18 @@ uint16_t Instance::DPUpperBoundClassic(uint16_t tinit, const std::set<uint16_t>&
 
 	if (A.empty())
 	{
-		return 0;
+		return {};
 	}
 
 
-	utils::Matrix f(DP(A, tinit, _dmax + 1));
-
-	uint16_t last(A.at(A.size() - 1));
+	core::Matrix f(DP(A, tinit, _dmax + 1));
 
 
-	return f.at(last).at(0);
+
+	return getSeqFromDP(f,A,tinit,_dmax+1);
 }
 
-uint16_t Instance::MooreUpperBound(uint16_t tinit, const std::set<uint16_t>& visited) const
+std::vector<uint16_t> Instance::MooreUpperBound(uint16_t tinit, const std::set<uint16_t>& visited) const
 {
 	// get list of candidate jobs
 	std::vector<uint16_t> orders;
@@ -826,7 +1142,7 @@ uint16_t Instance::MooreUpperBound(uint16_t tinit, const std::set<uint16_t>& vis
 	for (uint16_t i : orders)
 	{
 
-		if (pA + _p[i] <= _d[i])
+		if (pA + _p[i] <= _d[i]+1)
 		{
 			A.push_back(i);
 			pA += _p[i];
@@ -834,7 +1150,6 @@ uint16_t Instance::MooreUpperBound(uint16_t tinit, const std::set<uint16_t>& vis
 		else
 		{
 			A.push_back(i);
-			pA += _p[i];
 
 			std::vector<uint16_t>::iterator longestAcceptedJob
 			(
@@ -844,24 +1159,25 @@ uint16_t Instance::MooreUpperBound(uint16_t tinit, const std::set<uint16_t>& vis
 					A.end(),
 					[this](uint16_t x, uint16_t y)
 					{
-						return _p[x] >= _p[y];
+						return (double)_p[x]/(double)_w[x] <= (double)_p[y]/(double)_w[y];
 					}
 				)
 			);
 
+
 			uint16_t k(*longestAcceptedJob);
 			std::vector<uint16_t>::iterator toRemove(std::find(A.begin(), A.end(), k));
 
-			pA = pA - _p[k];
+			pA = pA + _p[i] - _p[k];
 
 			A.erase(toRemove);
+		
 		}
 	}
 
 
-
 	if (A.empty())
-		return 0;
+		return {};
 
 	std::vector<uint16_t> N;
 	for (uint16_t k(0); k < _n; ++k)
@@ -878,18 +1194,17 @@ uint16_t Instance::MooreUpperBound(uint16_t tinit, const std::set<uint16_t>& vis
 	}
 	);
 
-	uint16_t wTotal(0);
+	std::vector<uint16_t> Nl;
 	for (uint16_t l(0); l < A.size(); ++l)
 	{
-		wTotal += _w[N.at(l)];
+		Nl.push_back(N.at(l));
 	}
 
 
-
-	return wTotal;
+	return Nl;
 }
 
-uint16_t Instance::MILPUpperBound(uint16_t tinit, const std::set<uint16_t>& visited, int numThread) const
+std::vector<uint16_t> Instance::MILPUpperBound(uint16_t tinit, const std::set<uint16_t>& visited, int numThread) const
 {
 
 
@@ -905,19 +1220,19 @@ uint16_t Instance::MILPUpperBound(uint16_t tinit, const std::set<uint16_t>& visi
 
 	if (A.empty())
 	{
-		return 0;
+		return {};
 	}
 
-	milp M(numThread, _datfile,  tinit,_T,A);
 
-	uint16_t profit = M.run();
+	uint16_t profit = 0;
 
-	return profit;
+	/* TODO */
+	return { profit };
 }
 
-uint16_t Instance::UpperBound(core::upperBound_name ubName, int16_t tinit, const std::set<uint16_t>& visited, int numThread, std::chrono::time_point<std::chrono::system_clock>& start, std::vector<double>& duration) const
+std::vector<uint16_t> Instance::UpperBound(core::upperBound_name ubName, int16_t tinit, const std::set<uint16_t>& visited, int numThread, std::chrono::time_point<std::chrono::system_clock>& start, std::vector<double>& duration) const
 {
-	uint16_t ub(UINT16_MAX);
+	std::vector<uint16_t>  ub;
 
 	switch (ubName)
 	{
@@ -990,11 +1305,11 @@ std::ostream & Instance::printCharacteristics(std::ostream& oss, char delim) con
 void Instance::printSequence(const std::vector<uint16_t>& seq) const
 {
 		  
-	utils::Matrix x;
+	std::map<uint16_t, std::map<int16_t,uint16_t>> x;
 
 	for (uint16_t i(0); i < _n; ++i)
 	{
-		x.emplace(0, std::map<uint16_t, uint16_t>());
+		x.emplace(0, std::map<int16_t, uint16_t>());
 		for (uint16_t t(0); t < _dmax; ++t)
 		{
 			x[i].emplace(t,0);
@@ -1008,13 +1323,12 @@ void Instance::printSequence(const std::vector<uint16_t>& seq) const
 		if (not L.empty())
 		{
 			uint16_t j(*L.begin());
-			std::cout << "j=" << j << std::endl;
 
 			int16_t tend(_earliestCompletionTime[j][t]);
 			if (tend != -1)
 			{
 				int16_t tbegin(tend - _p[j]);
-				for (uint16_t tt(tbegin); tt < tend; ++tt)
+				for (int16_t tt(tbegin); tt < tend; ++tt)
 				{
 					x[j][tt] = 1;
 				}
@@ -1024,7 +1338,7 @@ void Instance::printSequence(const std::vector<uint16_t>& seq) const
 			}
 			else
 			{
-				std::cout << "could not place j=" << j << " , t= " << t << " =" << _earliestCompletionTime[j][t]<< std::endl;
+				//std::cout << "could not place j=" << j << " , t= " << t << " =" << _earliestCompletionTime[j][t]<< std::endl;
 				break;
 			}
 			std::vector<uint16_t>::iterator it = std::find(L.begin(), L.end(), j);
@@ -1035,14 +1349,14 @@ void Instance::printSequence(const std::vector<uint16_t>& seq) const
 	}
 
 
-	std::cout << "  ";
+	/*std::cout << "  ";
 	for (uint16_t t(0); t < _dmax; ++t)
 	{
 		std::cout << _E[t] << " ";
 	}
-	std::cout << std::endl;
+	std::cout << std::endl;	*/
 
-	for (uint16_t i(0); i < _n; ++i)
+	/*for (uint16_t i(0); i < _n; ++i)
 	{
 		std::cout << i << " : ";
 		for (uint16_t t(0); t < _dmax; ++t)
@@ -1050,7 +1364,7 @@ void Instance::printSequence(const std::vector<uint16_t>& seq) const
 			std::cout << _e[i]*x.at(i).at(t) << " ";
 		}
 		std::cout << std::endl;
-	}
+	}*/
 
 }
 
@@ -1133,7 +1447,7 @@ Instance* Instance::load(const char* datname)
 			case  utils::OptionsParams::OrderNb:
 			{
 				n = atoi(values.c_str());
-				T = 1440;//(n * PMAX) -1 ;	
+				T = TMAX;
 				break;
 			}
 
