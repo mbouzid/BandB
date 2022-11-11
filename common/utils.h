@@ -5,9 +5,7 @@
 #include <string>
 #include <random>
 #include <algorithm>
-#define NELEMS(x)  (sizeof(x) / sizeof((x)[0]))
-#define PMAX 10
-#define TMAX 96//1440
+#define TMAX 96
 
 
 namespace utils
@@ -39,7 +37,6 @@ namespace utils
 	template<class T> std::ostream& print(std::ostream& os, T* array, size_t n);
 	template<class T> std::ostream& print(std::ostream& os, const std::vector<T>&);
 	template<class T> std::ostream& print(std::ostream& os, const std::set<T>&);
-
 
 
 	void cleanVector(std::vector <std::string>& v);
@@ -76,5 +73,10 @@ namespace utils
 		 std::string fromCorrLevel(e_corrLevel corrLevel);
 
 	 }
+
+
+     std::vector<uint16_t> getComplement(const std::set<uint16_t> & A, uint16_t n);
+     std::set<uint16_t> getComplementFromVector(const std::vector<uint16_t> & A, uint16_t n);
+
 
 }

@@ -7,8 +7,8 @@
 #include <set>
 #include <functional>
 #include <chrono>
-#include "utils.h"
-#include "core.h"
+#include "common/utils.h"
+#include "solver/core.h"
 
 
 
@@ -99,7 +99,8 @@ protected:
 	}
 
 	int16_t computeEarliestCompletionTime(uint16_t i, uint16_t t) const;
-	uint16_t energyMinimalInInterval(uint16_t a, uint16_t b) const;
+
+    void ratioSwitch(int16_t & t, std::map<uint16_t, double> & ratio, std::vector <uint16_t> & orders, core::heuristic::ratio HeuristicRatio) const;
 
 
 public:
@@ -178,6 +179,11 @@ public:
 		return _p[i];
 	}
 
+    uint16_t getPmax() const
+    {
+        return *std::max_element(_p, _p + _n);
+    }
+
 	uint16_t getD(size_t i)	const
 	{
 		return _d[i];
@@ -201,7 +207,10 @@ public:
 
 	}
 
-	uint16_t getDmax() const
+    uint16_t energyMinimalInInterval(uint16_t a, uint16_t b) const;
+
+
+    uint16_t getDmax() const
 	{
 		return _dmax;
 	}
@@ -219,19 +228,10 @@ public:
 
 	core::Matrix DP(std::vector<uint16_t>& A, uint16_t a, uint16_t b) const;
 
-	core::Matrix DP1(std::vector<uint16_t>& A, uint16_t a, uint16_t b) const;
 
-	int mainloop_insertionHeuristic(int16_t & t, std::vector <uint16_t>& orders, std::vector <uint16_t>& seq, uint16_t & profit, core::heuristic_ratio HeuristicRatio) const;
-	
-	
-	std::vector<uint16_t> Heuristic1(core::heuristic_ratio) const;
-	std::vector<uint16_t> Heuristic2() const;
-	std::vector<uint16_t> Heuristic3(core::heuristic_ratio HeuristicRatio) const;
-	
-	std::vector<uint16_t> Heuristic4() const;
+	/*std::vector<uint16_t> Heuristic4() const;
 
-	std::vector<uint16_t> Heuristic(core::heuristic_name hName, core::heuristic_ratio hRatio, std::chrono::time_point<std::chrono::system_clock>& start, std::vector<double> & duration) const;
-	
+
 	uint16_t computeProfit(const std::vector <uint16_t> & ) const;
 
 	std::vector<uint16_t> DPUpperBound(uint16_t tinit, const std::set<uint16_t>& visited) const;
@@ -241,9 +241,7 @@ public:
 	std::vector<uint16_t> MILPUpperBound(uint16_t tinit, const std::set<uint16_t>& visited, int numThread) const;
 	
 	std::vector<uint16_t> UpperBound(core::upperBound_name ubName, int16_t tinit, const std::set<uint16_t>& visited, int numThread, std::chrono::time_point<std::chrono::system_clock>& start, std::vector<double>& duration) const;
-	
-	uint16_t Heuristic1LowerBound(uint16_t tinit, const std::vector<uint16_t> & seq, const std::set<uint16_t>& visited, core::heuristic_ratio HeuristicRatio) const;
-
+	*/
 
 	uint16_t getTotalImpact(const std::vector<uint16_t>& sequence) const
 	{

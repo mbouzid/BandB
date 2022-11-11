@@ -1,6 +1,8 @@
 #pragma once
 
-#include "instance.h"
+#include "generator/instance.h"
+#include "solution.h"
+#include "upper_bound.h"
 #include "node.h"
 #include <queue>
 #include <omp.h>
@@ -13,8 +15,6 @@ class Solver
 
 	Instance* _instance;
 
-
-
 	public:
 
 	Solver
@@ -26,7 +26,7 @@ class Solver
 
 	void run();
 
-	void runHeuristics(uint16_t& bestInitialLowerBound, uint16_t & bestInitialUpperBound, std::vector<uint16_t>& bestSequence);
+	void runHeuristics(uint16_t& bestInitialLowerBound, uint16_t & bestInitialUpperBound, Solution*& bestSequence);
 
 	void runDPUpperBoundClassic();
 	~Solver()

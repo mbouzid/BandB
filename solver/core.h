@@ -7,29 +7,41 @@
 namespace core
 {
 
+    namespace upperBound
+    {
+        enum name
+        {
+            Moore,
+            DP
+        };
 
-	enum heuristic_name
-	{
-		INSERT,
-		INSERT_INTV,
-		INSERT_DP,
-		DPH
-	};
+    }
 
-	enum heuristic_ratio
-	{
-		NO_RATIO,
-		RATIO_A,
-		RATIO_B,
-		RATIO_C	
-	};
 
-	enum upperBound_name
-	{
-		Moore,
-		Milp,
-		DP
-	};
+    namespace heuristic
+    {
+
+        enum name
+        {
+            INSERT,
+            INSERT_INTV,
+            INSERT_DP,
+            DPH
+        };
+
+        enum ratio
+        {
+            NO_RATIO,
+            RATIO_A,
+            RATIO_B,
+            RATIO_C
+        };
+
+        double ratioA(int16_t C, uint16_t p, uint16_t w);
+        double ratioB(int16_t C, uint16_t p, uint16_t w);
+        double ratioC(int16_t C, uint16_t p, uint16_t w);
+    };
+
 
 	class tupleDP
 	{
