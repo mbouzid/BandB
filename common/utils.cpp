@@ -130,6 +130,34 @@ std::vector<uint16_t> utils::emptyVector()
 	return std::vector<uint16_t>();
 }
 
+std::vector<uint16_t> utils::getComplement(const std::set<uint16_t> &A, uint16_t n)
+{
+    std::vector<uint16_t> complement;
+    for (uint16_t i(0); i < n; ++i)
+    {
+        if (A.find(i) == A.end())
+        {
+            complement.push_back(i);
+        }
+    }
+
+    return complement;
+}
+
+std::set<uint16_t> utils::getComplementFromVector(const std::vector<uint16_t> &A, uint16_t n)
+{
+    std::set <uint16_t> complement;
+    for (uint16_t i(0); i < n; ++i)
+    {
+        auto found = std::find(A.begin(), A.end(), i);
+        if (found == A.end())
+        {
+            complement.insert(i);
+        }
+    }
+    return complement;
+}
+
 
 template std::ostream& utils::print<uint16_t>(std::ostream& os, const std::vector<uint16_t>& v);
 template std::ostream& utils::print<uint16_t>(std::ostream& os, const std::set<uint16_t>& v);
