@@ -9,8 +9,6 @@
 
 void Solver::run()
 {
-	/*	_instance->printEarliestCompletionTimes();
-	exit(0);*/
 
 	uint16_t initialLowerBound, initialUpperBound;
 	std::vector<uint16_t> bestSequence;
@@ -67,12 +65,7 @@ void Solver::run()
 			uint16_t j(A.at(k));   				
 
 			int16_t earliestEndtime(_instance->getEarliestCompletionTime(j, u.getT()));
-			
 
-			//for (uint16_t k(0); k <= u.getLevel(); ++k)
-			//	std::cout << "\t";
-
-			//std::cout << "j=" << j << ", t=" << earliestEndtime << std::endl;
 
 			uint16_t incumbentProfit(u.getProfit());
 			uint16_t upperBound(u.getUpperBound());
@@ -100,26 +93,12 @@ void Solver::run()
 				continue;
 			} 
 
-
-			//double gap(((double)(incumbentProfit + upperBound) - (double)lowerBound) / (double)(incumbentProfit+upperBound));
-
-			/*if (gap <= 0.1)
-			{
-				ub1 = _instance->computeProfit(_instance->DPUpperBound(t, visited));
-			}
-			else
-			{
-				ub1 = _instance->computeProfit(_instance->MooreUpperBound(t, visited));
-			}*/
 			
 			ub1 = _instance->computeProfit(_instance->DPUpperBound(t, visited));
 
-			//for (uint16_t k(0); k <= u.getLevel(); ++k)
-			//	std::cout << "\t";
-			//std::cout << "\tub1=" << ub1 << " profit=" << incumbentProfit<< std::endl;
+
 			upperBound = std::min(ub1, upperBound);
 
-			//std::cout << "profit=" << incumbentProfit << std::endl;
 
 
 			if (incumbentProfit > lowerBound)
@@ -164,13 +143,11 @@ void Solver::runHeuristics(uint16_t& bestInitialLowerBound, uint16_t& bestInitia
 		_instance->Heuristic(core::heuristic_name::INSERT, core::heuristic_ratio::RATIO_A, start, durationLB),
 		_instance->Heuristic(core::heuristic_name::INSERT, core::heuristic_ratio::RATIO_B, start, durationLB),
 		_instance->Heuristic(core::heuristic_name::INSERT, core::heuristic_ratio::RATIO_C, start, durationLB),
-	//	_instance->Heuristic(core::heuristic_name::INSERT_DP, core::heuristic_ratio::NO_RATIO, start, durationLB),
 		_instance->Heuristic(core::heuristic_name::INSERT_DP, core::heuristic_ratio::RATIO_A, start, durationLB),
 		_instance->Heuristic(core::heuristic_name::INSERT_DP, core::heuristic_ratio::RATIO_B, start, durationLB),
 		_instance->Heuristic(core::heuristic_name::INSERT_DP, core::heuristic_ratio::RATIO_C, start, durationLB), 		
 		_instance->Heuristic(core::heuristic_name::INSERT_INTV, core::heuristic_ratio::NO_RATIO, start, durationLB),
 		_instance->Heuristic(core::heuristic_name::DPH, core::heuristic_ratio::NO_RATIO, start, durationLB)
-
 	};
 
 	bestSequence = *std::max_element(heuristics.begin(), heuristics.end(),

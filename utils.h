@@ -4,6 +4,7 @@
 #include <set>
 #include <string>
 #include <random>
+#include <algorithm>
 #define NELEMS(x)  (sizeof(x) / sizeof((x)[0]))
 #define PMAX 10
 #define TMAX 96//1440

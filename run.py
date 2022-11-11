@@ -3,7 +3,7 @@ import re
 import sys
 import subprocess as sp
 
-_exec = '.\\cmake-build-release\\BandB.exe'
+_exec = '.\\cmake-build-release-mingw\\BandB.exe'
 delim =";"
 assert (len(sys.argv) > 1), "An argument must be given"
 
@@ -28,12 +28,12 @@ def list_files_recursive(path):
 
 dats = list_files_recursive(instdir)
 # header
-print('n','dL','dU','corrLevel','instNum','Obj','Method','Time',sep=delim)
+print('n','dL','dU','corrLevel','instNum','Obj','Method','Impact','Time',sep=delim)
 for dat in dats:
 	if dat.find('.dat') != -1:
 		n,dL,dU,corrLevel,num = re.search('([0-9]+)orders_dL_(.*)_dU_(.*)_(.*)_(.*).dat',os.path.basename(dat)).groups(0)
 		cmd = _exec+" "+dat
-		os.system(cmd)
-		#p = sp.Popen(cmd, shell=True, stdout=sp.PIPE)
-		#output = p.stdout.read().decode('utf-8').replace('\n','')
-		#print(output)
+		#os.system(cmd)
+		p = sp.Popen(cmd, shell=True, stdout=sp.PIPE)
+		output = p.stdout.read().decode('utf-8').replace('\n','')
+		print(output,end='')
