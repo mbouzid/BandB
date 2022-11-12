@@ -158,6 +158,17 @@ std::set<uint16_t> utils::getComplementFromVector(const std::vector<uint16_t> &A
     return complement;
 }
 
+bool utils::isInVector(const std::vector<uint16_t> &vec, uint16_t elt) {
+
+    std::vector<uint16_t>::const_iterator found = std::find(vec.cbegin(),vec.cend(),elt);
+    if (found == vec.cend())
+    {
+        return false;
+    }
+
+    return true;
+}
+
 
 template std::ostream& utils::print<uint16_t>(std::ostream& os, const std::vector<uint16_t>& v);
 template std::ostream& utils::print<uint16_t>(std::ostream& os, const std::set<uint16_t>& v);

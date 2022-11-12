@@ -12,9 +12,9 @@ core::Matrix UpperBound::DP(const Instance * instance, std::vector<uint16_t> & A
     uint16_t n(A.size());
 
 
-    std::sort(A.begin(), A.end(),
-              [instance](uint16_t x, uint16_t y){
-                    return instance->getD(x) <= instance->getD(y); });
+    std::stable_sort(A.begin(), A.end(),[instance](uint16_t x, uint16_t y){
+        return instance->getD(x) <= instance->getD(y);
+    });
 
     uint16_t i(A.at(n - 1));
 
@@ -41,10 +41,10 @@ core::Matrix UpperBound::DP(const Instance * instance, std::vector<uint16_t> & A
 
 
     std::vector<uint16_t> B(A);
-    std::sort(B.begin(), B.end(),
-              [instance](uint16_t x, uint16_t y)
-              {
-                    return instance->getD(x) >= instance->getD(y); });
+    std::stable_sort(B.begin(), B.end(),[instance](uint16_t x, uint16_t y)
+    {
+        return instance->getD(x) >= instance->getD(y);
+    });
 
     B.erase(B.begin());
 
@@ -97,6 +97,8 @@ const std::vector<uint16_t> & UpperBound::getSequence() const
 uint16_t UpperBound::getProfit(const Instance * instance) const
 {
     uint16_t profit(0);
+    if (_sequence.empty())
+        return 0;
     for (uint16_t i : _sequence)
     {
         profit += instance->getW(i);
@@ -148,7 +150,7 @@ UpperBound *UpperBound::MooreUpperBound(const Instance * instance, int16_t a, in
     }
 
     // sort orders by EDD
-    std::sort(orders.begin(),orders.end(),[instance](uint16_t x, uint16_t y)
+    std::stable_sort(orders.begin(),orders.end(),[instance](uint16_t x, uint16_t y)
     {
         return instance->getD(x) <= instance->getD(y);
     });
@@ -199,7 +201,7 @@ UpperBound *UpperBound::MooreUpperBound(const Instance * instance, int16_t a, in
 
 
     // sort by increasing w
-    std::sort(N.begin(), N.end(),[instance]	(uint16_t x, uint16_t y)
+    std::stable_sort(N.begin(), N.end(),[instance]	(uint16_t x, uint16_t y)
     {
         return instance->getW(x) >= instance->getW(y);
     });
@@ -218,7 +220,7 @@ UpperBound * UpperBound::DPUpperBound(const Instance *instance, int16_t a, int16
 {
     if (visited.size() == instance->getN())
     {
-        return {};
+        return new UpperBound({});
     }
 
 
@@ -240,12 +242,12 @@ UpperBound * UpperBound::DPUpperBound(const Instance *instance, int16_t a, int16
 
     core::Matrix f(DP(instance,A, a, b));
 
-    std::vector<uint16_t> sequence(getSequenceFromDP(f,A,a,b));
+    std::vector<uint16_t> sequence(getSequenceFromDP(instance,f,A,a,b));
 
     return new UpperBound(sequence);
 }
 
-std::vector<uint16_t> UpperBound::getSequenceFromDP(const core::Matrix &f, std::vector<uint16_t> &A, int16_t a, int16_t b)
+std::vector<uint16_t> UpperBound::getSequenceFromDP(const Instance * instance, const core::Matrix &f, std::vector<uint16_t> &A, int16_t a, int16_t b)
 {
 
     std::vector<uint16_t> sequence;
@@ -261,18 +263,25 @@ std::vector<uint16_t> UpperBound::getSequenceFromDP(const core::Matrix &f, std::
 
     int16_t t(f.at(first).at(a).getTime());
 
+    if (t >= instance->getDmax())
+        return sequence;
+
     A.erase(A.begin());
 
     for (uint16_t j : A)
     {
-        if (f.at(j).at(t).getAccept())
-        {
-            sequence.push_back(j);
+        //if (f.find(j) != f.end()) {
+            if (f.at(j).at(t).getAccept()) {
+                sequence.push_back(j);
+            }
+            t = f.at(j).at(t).getTime();
         }
+        //else
+        //{
+        //    break;
+        //}
 
-        t = f.at(j).at(t).getTime();
-
-    }
+    //}
 
 
     return sequence;

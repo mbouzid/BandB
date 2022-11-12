@@ -63,10 +63,17 @@ Solution * Solution::Heuristics1(core::heuristic::ratio hRatio, const Instance *
 
     while (t <= T)
     {
-        int res = insertBest(t, candidates, profit, hRatio, instance, sequence);
+        int res = insertBest(t, profit, hRatio,candidates, instance);
+
         if (res == -1)
         {
             break;
+        }
+        else
+        {
+            std::vector<uint16_t>::iterator found = std::find(candidates.begin(),candidates.end(),res);
+            candidates.erase(found);
+            sequence.push_back(res);
         }
     }
 
@@ -134,7 +141,7 @@ Solution * Solution::Heuristics2(core::heuristic::ratio hRatio, const Instance *
         }
 
 
-        std::sort(L.begin(),L.end(),[&ratio](uint16_t x, uint16_t y)
+        std::stable_sort(L.begin(),L.end(),[&ratio](uint16_t x, uint16_t y)
         {
             return ratio.at(x) <= ratio.at(y);
         });
@@ -288,7 +295,7 @@ Solution * Solution::Heuristic4(const Instance *instance)
 
 
     // sort by deadline
-    std::sort(A.begin(), A.end(), [&d](uint16_t x, uint16_t y) { return d[x] <= d[y]; });
+    std::stable_sort(A.begin(), A.end(), [&d](uint16_t x, uint16_t y) { return d[x] <= d[y]; });
 
     int16_t T(instance->getT());
 
@@ -313,7 +320,7 @@ Solution * Solution::Heuristic4(const Instance *instance)
 
 
     std::vector<uint16_t> B(A);
-    std::sort(B.begin(), B.end(), [&d](uint16_t x, uint16_t y) {return d[x] >= d[y]; });
+    std::stable_sort(B.begin(), B.end(), [&d](uint16_t x, uint16_t y) {return d[x] >= d[y]; });
 
     B.erase(B.begin());
 
@@ -355,12 +362,13 @@ Solution * Solution::Heuristic4(const Instance *instance)
         i = j;
     }
 
-    return new Solution(UpperBound::getSequenceFromDP(f,A,0,instance->getT()));
+    return new Solution(UpperBound::getSequenceFromDP(instance,f,A,0,instance->getT()));
 
 }
 
-int Solution::insertBest(int16_t & t, std::vector<uint16_t> & orders, uint16_t & profit, core::heuristic::ratio hRatio, const Instance * instance, std::vector<uint16_t> & sequence)
+int Solution::insertBest(int16_t & t, uint16_t & profit, core::heuristic::ratio hRatio, const std::vector<uint16_t> & orders, const Instance * instance)
 {
+    int insertedOrder (-1);
     std::map<uint16_t, double> ratio;
 
     switchRatio(t,ratio,orders,hRatio,instance);
@@ -377,18 +385,12 @@ int Solution::insertBest(int16_t & t, std::vector<uint16_t> & orders, uint16_t &
         }
     }
 
-
     if (not L.empty())
     {
 
-        std::sort(L.begin(),L.end(),
-                  [&ratio](const uint16_t & x, const uint16_t &  y){
-                            if (ratio.find(x) == ratio.end() or ratio.find(y) == ratio.end())
-                                return false;
-                            else
-                                return ratio.at(x) <= ratio.at(y);
-                        }
-                );
+        std::stable_sort(L.begin(),L.end(),[&ratio](const uint16_t & x, const uint16_t &  y){
+            return ratio.at(x) <= ratio.at(y);
+        });
 
         uint16_t j(*L.begin());
 
@@ -397,21 +399,19 @@ int Solution::insertBest(int16_t & t, std::vector<uint16_t> & orders, uint16_t &
             t = instance->getEarliestCompletionTime(j,t);
             profit += instance->getW(j);
 
-
-            orders.erase(std::find(orders.begin(), orders.end(), j));
-            sequence.push_back(j);
+            insertedOrder = j;
         }
     }
     else
     {
-        return -1;
+        return insertedOrder;
     }
 
 
-    return 0;
+    return insertedOrder;
 }
 
-void Solution::switchRatio(int16_t & t, std::map<uint16_t, double> & ratio, std::vector <uint16_t> & orders, core::heuristic::ratio hRatio, const Instance * instance)
+void Solution::switchRatio(int16_t & t, std::map<uint16_t, double> & ratio, const std::vector <uint16_t> & orders, core::heuristic::ratio hRatio, const Instance * instance)
 {
     switch (hRatio)
     {

@@ -59,7 +59,7 @@ void Solver::run()
 			}
 		}
 
-		#pragma omp parallel for shared(lowerBound,_queue), num_threads(1)
+		//#pragma omp parallel for shared(lowerBound,_queue), num_threads(1)
 		for (int k=0; k < A.size(); ++k)
 		{
 			uint16_t j(A.at(k));   				
@@ -104,10 +104,10 @@ void Solver::run()
 			if (incumbentProfit > lowerBound)
 			{
 				lowerBound = incumbentProfit;
-				#pragma omp critical
-				{
+		//		#pragma omp critical
+		//		{
 					bestSequence = new Solution(sequence);
-				}
+		//		}
 			}
 				
 

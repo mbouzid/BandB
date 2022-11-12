@@ -63,7 +63,7 @@ uint16_t Instance::checkProfit(int16_t tinit, const std::set<uint16_t>& visited)
 
 
 	// sort by EDD
-	std::sort
+	std::stable_sort
 	(
 		A.begin(), A.end(),
 		[this](uint16_t i, uint16_t j)

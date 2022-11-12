@@ -78,5 +78,6 @@ namespace utils
      std::vector<uint16_t> getComplement(const std::set<uint16_t> & A, uint16_t n);
      std::set<uint16_t> getComplementFromVector(const std::vector<uint16_t> & A, uint16_t n);
 
+     bool isInVector(const std::vector<uint16_t> & vec, uint16_t elt);
 
 }
