@@ -6,7 +6,7 @@
 #include <random>
 #include <algorithm>
 #define TMAX 96
-
+#define MAXTIME 3600
 
 namespace utils
 {
@@ -79,5 +79,6 @@ namespace utils
      std::set<uint16_t> getComplementFromVector(const std::vector<uint16_t> & A, uint16_t n);
 
      bool isInVector(const std::vector<uint16_t> & vec, uint16_t elt);
+
 
 }

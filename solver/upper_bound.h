@@ -33,6 +33,7 @@ class UpperBound
         static std::vector<uint16_t> getSequenceFromDP(const Instance * instance, const core::Matrix & f, std::vector<uint16_t> & A, int16_t a, int16_t b);
         const std::vector<uint16_t> & getSequence() const;
         uint16_t getProfit(const Instance * instance) const;
+        uint16_t getTotalImpact(const Instance * instance) const;
 };
 
 #endif //BANDB_UPPER_BOUND_H

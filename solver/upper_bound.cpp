@@ -94,6 +94,17 @@ const std::vector<uint16_t> & UpperBound::getSequence() const
     return _sequence;
 }
 
+uint16_t UpperBound::getTotalImpact(const Instance * instance) const
+{
+    uint16_t impact(0);
+    for (uint16_t j : _sequence)
+    {
+        impact += instance->getE(j)*instance->getP(j);
+    }
+
+    return impact;
+}
+
 uint16_t UpperBound::getProfit(const Instance * instance) const
 {
     uint16_t profit(0);

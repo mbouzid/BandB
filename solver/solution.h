@@ -43,6 +43,7 @@ class Solution
 
         std::vector<uint16_t> getSequence() const;
         uint16_t getProfit(const Instance * instance) const;
+        uint16_t getTotalImpact(const Instance * instance) const;
         // solution factory
         static Solution * Heuristic(const Instance * instance, core::heuristic::name hName, core::heuristic::ratio hRatio);
 

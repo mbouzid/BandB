@@ -229,31 +229,6 @@ public:
 	core::Matrix DP(std::vector<uint16_t>& A, uint16_t a, uint16_t b) const;
 
 
-	/*std::vector<uint16_t> Heuristic4() const;
-
-
-	uint16_t computeProfit(const std::vector <uint16_t> & ) const;
-
-	std::vector<uint16_t> DPUpperBound(uint16_t tinit, const std::set<uint16_t>& visited) const;
-	std::vector<uint16_t> DPUpperBoundClassic(uint16_t tinit, const std::set<uint16_t>& visited) const;
-
-	std::vector<uint16_t> MooreUpperBound(uint16_t tinit, const std::set<uint16_t>& visited) const;
-	std::vector<uint16_t> MILPUpperBound(uint16_t tinit, const std::set<uint16_t>& visited, int numThread) const;
-	
-	std::vector<uint16_t> UpperBound(core::upperBound_name ubName, int16_t tinit, const std::set<uint16_t>& visited, int numThread, std::chrono::time_point<std::chrono::system_clock>& start, std::vector<double>& duration) const;
-	*/
-
-	uint16_t getTotalImpact(const std::vector<uint16_t>& sequence) const
-	{
-		uint16_t impact(0);
-		for (uint16_t j : sequence)
-		{
-			impact += _e[j]*_p[j];
-		}
-
-		return impact;
-	}
-	
 
 
 	~Instance()

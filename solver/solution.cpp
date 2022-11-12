@@ -124,8 +124,64 @@ Solution * Solution::Heuristics2(core::heuristic::ratio hRatio, const Instance *
             }
             else
             {
+                int16_t C = instance->getEarliestCompletionTime(i,t);
+                UpperBound * UB(UpperBound::UpperBounds(instance,core::upperBound::name::DP,C,instance->getT(),A));
+                double expectProfit = (double)UB->getProfit(instance);
+                delete UB;
 
-                switchRatio(t,ratio,orders,hRatio,instance);
+                switch (hRatio)
+                {
+                    case core::heuristic::RATIO_A:
+                    {
+
+                        // (C[i][t]/w[i]) + (C[i][t]/UB2(L,C[i][t],T))
+                        double RA = core::heuristic::ratioA(C,instance->getP(i),instance->getW(i));
+                        if (expectProfit == 0) {
+                            ratio[i] = RA;
+                        }
+                        else
+                        {
+                            ratio[i] = RA + (double)C/(double)expectProfit;
+                        }
+
+                        break;
+                    }
+
+                    case core::heuristic::RATIO_B:
+                    {
+                        double RB = core::heuristic::ratioB(C,instance->getP(i),instance->getW(i));
+                        if (expectProfit == 0)
+                        {
+                            ratio[i] = RB ;
+                        }
+                        else
+                        {
+                            ratio[i] = RB + (double) C / (double) expectProfit;
+                        }
+                        break;
+                    }
+
+                    case core::heuristic::RATIO_C:
+                    {
+                        double RC = core::heuristic::ratioC(C,instance->getP(i),instance->getW(i));
+                        if (expectProfit == 0) {
+                            ratio[i] = RC;
+                        }
+                        else {
+                            ratio[i] = RC + (double) C / (double) expectProfit;
+                        }
+
+                        break;
+                    }
+
+                        default:
+                        {
+                            break;
+                        }
+
+
+                }
+                //switchRatio(t,ratio,orders,hRatio,instance);
 
             }
 
@@ -176,7 +232,7 @@ Solution * Solution::Heuristic3(const Instance * instance)
         L.push_back(i);
     }
 
-    std::sort(L.begin(),L.end(),[instance](uint16_t x, uint16_t y)
+    std::stable_sort(L.begin(),L.end(),[instance](uint16_t x, uint16_t y)
     {
         return instance->getD(x) <= instance->getD(y);
     });
@@ -208,8 +264,10 @@ Solution * Solution::Heuristic3(const Instance * instance)
         {
             std::set<uint16_t> complementA(utils::getComplementFromVector(A,instance->getN()));
             UpperBound * UB = UpperBound::UpperBounds(instance,core::upperBound::DP,a,b,complementA);
-
+            uint16_t expectedProfit = UB->getProfit(instance);
             std::vector<uint16_t> subseq(UB->getSequence());
+
+            delete UB;
             if (not subseq.empty())
             {
 
@@ -221,7 +279,7 @@ Solution * Solution::Heuristic3(const Instance * instance)
 
                     L.erase(toRemove);
                 }
-                profit += UB->getProfit(instance);
+                profit += expectedProfit;
                 a += pmax;
                 b += pmax;
 
@@ -253,7 +311,7 @@ Solution * Solution::Heuristic4(const Instance *instance)
     std::vector<uint16_t> R;
 
     // remove non processable orders
-    for (int16_t i(0); i < instance->getN(); ++i)
+    for (uint16_t i(0); i < instance->getN(); ++i)
     {
         if (instance->getEarliestCompletionTime(i,0)== -1)
         {
@@ -462,6 +520,17 @@ void Solution::computeRatioInsertion(std::map<uint16_t, double>& ratio, const st
 std::vector<uint16_t> Solution::getSequence() const
 {
     return _sequence;
+}
+
+uint16_t Solution::getTotalImpact(const Instance * instance) const
+{
+    uint16_t impact(0);
+    for (uint16_t j : _sequence)
+    {
+        impact += instance->getE(j)*instance->getP(j);
+    }
+
+    return impact;
 }
 
 uint16_t Solution::getProfit(const Instance * instance) const
