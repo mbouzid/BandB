@@ -1,5 +1,4 @@
 #include <cstdlib>
-//#include <boost/thread.hpp>
 #include <chrono>
 #include <ctime>
 #include "solver/solver.h"
@@ -8,18 +7,15 @@
 
 
 
-
 int main(int argc, char* argv[])
 {
-    if (argc < 2)
-    {
+    if (argc < 2){
         std::cerr << "An argument is required" << std::endl;
         exit(EXIT_FAILURE);
     }
 
     omp_set_num_threads(8);
-    try
-	{
+    try{
         pthread_t thid;
 
 		srand(161295);
@@ -28,8 +24,7 @@ int main(int argc, char* argv[])
 		Instance* dat(Instance::load(datname));
 
         std::filesystem::path f{ datname };
-        if (not std::filesystem::exists(f))
-        {
+        if (not std::filesystem::exists(f)){
             std::cout << "File " << datname << " does not exist" << std::endl;
             return EXIT_FAILURE;
         }
@@ -44,22 +39,17 @@ int main(int argc, char* argv[])
 
         pthread_create(&thid, NULL, (&runWrapper), (void*)(&args));
 
-        while(not args._hasResult && time(0) < std::chrono::system_clock::to_time_t(start) + MAXTIME)
-        {
-            // Do nothing
+        while(not args._hasResult && time(0) < std::chrono::system_clock::to_time_t(start) + MAXTIME){
         }
-
 
         dat->printCharacteristics(std::cout,delim);
         std::cout << delim << solver.getBestSolution()->getProfit(dat);
         std::cout << delim << solver.getBestSolution()->getTotalImpact(dat);
 
-        if(not args._hasResult)
-        {
+        if(not args._hasResult){
             std::cout << delim << "nOPT" ;
         }
-        else
-        {
+        else{
             std::cout << delim << "OPT" ;
         }
 
@@ -72,8 +62,7 @@ int main(int argc, char* argv[])
 
         delete dat;
 	}
-	catch (const std::exception& e)
-	{
+	catch (const std::exception& e){
 		std::cout << e.what() << std::endl;
         return EXIT_FAILURE;
 	}

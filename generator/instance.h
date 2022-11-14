@@ -17,8 +17,8 @@ class Instance
 
 	private:
 
+    utils::datfile::s_characteristics * _characteristics;
 	const char* _datfile;
-	utils::datfile::s_characteristics * _characteristics;
 
 	size_t _n;
 

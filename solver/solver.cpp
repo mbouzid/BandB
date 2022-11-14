@@ -57,9 +57,9 @@ void Solver::run()
 			}
 		}
 
+        int K (A.size());
 		#pragma omp parallel for shared(lowerBound,_queue), num_threads(8)
-		for (int k=0; k < A.size(); ++k)
-		{
+		for (int k=0; k < K; ++k){
             //std::cout << "thread #" << omp_get_thread_num() << std::endl;
 			uint16_t j(A.at(k));   				
 
@@ -87,8 +87,7 @@ void Solver::run()
 			
 
 
-			if (incumbentProfit + upperBound <= lowerBound)
-			{
+			if (incumbentProfit + upperBound <= lowerBound){
 				continue;
 			} 
 
@@ -96,7 +95,11 @@ void Solver::run()
 			ub1 = UB1->getProfit(_instance);
             delete UB1;
 
-			upperBound = std::min(ub1, upperBound);
+            UpperBound * UB2 (UpperBound::UpperBounds(_instance,core::upperBound::Moore,t,_instance->getT(),visited));
+            uint16_t ub2 = UB2->getProfit(_instance);
+
+            delete UB2;
+            upperBound = std::min(std::min(ub1,ub2), upperBound);
 
 
 
@@ -135,8 +138,7 @@ void Solver::runHeuristics(uint16_t& bestInitialLowerBound, uint16_t& bestInitia
 	auto start = std::chrono::system_clock::now();
 	std::vector<double> durationLB(8,0);
 
-	std::vector < Solution * > heuristics =
-	{
+	std::vector < Solution * > heuristics ={
 		Solution::Heuristic(_instance,core::heuristic::name::INSERT, core::heuristic::ratio::RATIO_A),
         Solution::Heuristic(_instance,core::heuristic::name::INSERT, core::heuristic::ratio::RATIO_B),
         Solution::Heuristic(_instance,core::heuristic::name::INSERT, core::heuristic::ratio::RATIO_C),
@@ -193,7 +195,6 @@ void Solver::runHeuristics(uint16_t& bestInitialLowerBound, uint16_t& bestInitia
 
 	}
 
-	//exit(0);
 }
 
 

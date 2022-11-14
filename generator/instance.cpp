@@ -1,11 +1,9 @@
 #include "instance.h"
-#include "common/utils.h"
 #include <fstream>
 #include <string>
 #include <sstream>
 #include <map>
 #include <algorithm>
-#include <numeric>
 
 int16_t Instance::computeEarliestCompletionTime(uint16_t i, uint16_t t) const
 {
@@ -32,8 +30,7 @@ int16_t Instance::computeEarliestCompletionTime(uint16_t i, uint16_t t) const
 
 		}	  
 		
-		if (energyConstraint)
-		{
+		if (energyConstraint){
 			
 			delta = tt + _p[i];
 			return delta;
@@ -237,8 +234,7 @@ Instance* Instance::load(const char* datname)
 
 
 
-			switch (utils::resolveOption(paramName))
-			{
+			switch (utils::resolveOption(paramName)){
 
 			case  utils::OptionsParams::OrderNb:
 			{
