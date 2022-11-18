@@ -2,8 +2,9 @@
 #include <fstream>
 #include <algorithm>
 #include <numeric>
-
 #include <filesystem>
+#include <libgen.h>
+
 
 std::vector<std::string> utils::tokenize(const std::string& str, const std::string& delims)
 {
@@ -76,10 +77,10 @@ std::vector<std::string> utils::extractPattern(const std::string& str)
 	return tokenize(str, "_.");
 }
 
-std::string utils::getBaseName(const std::string& path)
+/*std::string utils::getBaseName(const std::string& path)
 {
 	return std::filesystem::path(path).filename().string();
-}
+}*/
 
 template<class T>
 std::ostream& utils::print(std::ostream& os, T* array, size_t n)
@@ -158,6 +159,17 @@ std::set<uint16_t> utils::getComplementFromVector(const std::vector<uint16_t> &A
     return complement;
 }
 
+bool utils::isInVector(const std::vector<uint16_t> &vec, uint16_t elt) {
+
+    std::vector<uint16_t>::const_iterator found = std::find(vec.cbegin(),vec.cend(),elt);
+    if (found == vec.cend())
+    {
+        return false;
+    }
+
+    return true;
+}
+
 
 template std::ostream& utils::print<uint16_t>(std::ostream& os, const std::vector<uint16_t>& v);
 template std::ostream& utils::print<uint16_t>(std::ostream& os, const std::set<uint16_t>& v);
@@ -167,9 +179,10 @@ template std::ostream& utils::print<uint16_t>(std::ostream& os, const std::set<u
 utils::datfile::s_characteristics * utils::datfile::getCharacteristicsFromName(const std::string& filename)
 {
 
-	std::vector<std::string> tokenFilename(utils::extractPattern(utils::getBaseName(filename)));
 
-	utils::datfile::s_characteristics* s = (utils::datfile::s_characteristics*)calloc(1,sizeof(utils::datfile::s_characteristics));
+    char * fname = (char *)filename.c_str();
+    std::vector<std::string> tokenFilename(utils::extractPattern(basename(fname)));
+    utils::datfile::s_characteristics* s = (utils::datfile::s_characteristics*)calloc(1,sizeof(utils::datfile::s_characteristics));
 
 
 	s->n = atoi(tokenFilename.at(0).c_str());

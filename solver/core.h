@@ -12,7 +12,8 @@ namespace core
         enum name
         {
             Moore,
-            DP
+            DP,
+            HochbaumShamir
         };
 
     }
@@ -26,7 +27,8 @@ namespace core
             INSERT,
             INSERT_INTV,
             INSERT_DP,
-            DPH
+            DPH,
+            H4Variant
         };
 
         enum ratio
