@@ -201,9 +201,9 @@ public:
 		return _e[i];
 	}
 
-	uint16_t getEE(size_t i) const
+	uint16_t getEE(size_t t) const
 	{
-		return _E[i];
+		return _E[t];
 
 	}
 
@@ -219,7 +219,6 @@ public:
 	{
 		return _earliestCompletionTime[i][t];
 	}
-
 
 	std::vector<uint16_t> getSeqFromDP(const core::Matrix& f, std::vector<uint16_t>& A, int16_t a, int16_t b) const;
 

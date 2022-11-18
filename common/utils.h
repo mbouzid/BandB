@@ -43,7 +43,7 @@ namespace utils
 
 	 std::vector<std::string> extractPattern(const std::string & );
 
-	 std::string getBaseName(const std::string& path);
+	 //std::string getBaseName(const std::string& path);
 
 	 namespace datfile
 	 {

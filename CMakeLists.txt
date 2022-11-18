@@ -1,12 +1,12 @@
-cmake_minimum_required(VERSION 3.17)
+cmake_minimum_required(VERSION 3.14)
 project(BandB)
 
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -std=c++17 -pthread -fopenmp -O3 -Wall -Wextra")
 
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBUILD_DEPS=ON -std=c++11 -pthread -fopenmp -O3 ")
+# flag -static
+add_compile_options("-lemon")
 
 include_directories(.)
-
 
 if(OpenMP_FOUND)
     target_link_libraries(BandB OpenMP::OpenMP_C)
@@ -22,5 +22,5 @@ set(SOURCE_FILES generator/instance.cpp
         solver/upper_bound.cpp
         solver/core.cpp)
 
-add_executable(BandB ${SOURCE_FILES})
 
+add_executable(BandB ${SOURCE_FILES})

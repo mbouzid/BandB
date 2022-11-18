@@ -32,6 +32,12 @@ Solution * Solution::Heuristic(const Instance * instance, core::heuristic::name 
             break;
         }
 
+        case core::heuristic::name::H4Variant:
+        {
+            solution = Heuristic4Variant(hRatio,instance);
+            break;
+        }
+
         default:
         {
             break;
@@ -424,6 +430,150 @@ Solution * Solution::Heuristic4(const Instance *instance)
 
 }
 
+Solution *Solution::Heuristic4Variant(core::heuristic::ratio hRatio, const Instance * instance) {
+
+    std::function<uint16_t (uint16_t, uint16_t )> pred = [](uint16_t a, uint16_t b) {return 1;};
+
+    switch(hRatio){
+        case core::heuristic::RATIO_A:{
+            pred = [instance](uint16_t i, uint16_t t) {return instance->getEarliestCompletionTime(i,t)+instance->getD(i);};
+            break;
+        }
+        case core::heuristic::RATIO_B:{
+            pred = [instance](uint16_t i, uint16_t t) {return instance->getEarliestCompletionTime(i,0);};
+            break;
+        }
+        case core::heuristic::RATIO_C:{
+            pred = [instance](uint16_t i, uint16_t t) {return instance->getEarliestCompletionTime(i,t);};
+            break;
+        }
+
+        case core::heuristic::NO_RATIO:{
+            pred = [instance](uint16_t i, uint16_t t) {return instance->getD(i);};
+            break;
+        }
+    }
+
+
+    std::vector<uint16_t> sequence;
+    std::vector<uint16_t> orders;
+
+    std::vector<uint16_t> R;
+
+    // remove non processable orders
+    for (uint16_t i(0); i < instance->getN(); ++i)
+    {
+        if (instance->getEarliestCompletionTime(i,0)== -1)
+        {
+            R.push_back(i);
+        }
+
+    }
+
+    // candidates jobs
+    std::vector<uint16_t> A;
+    for (uint16_t i(0); i < instance->getN(); ++i)
+    {
+        std::vector<uint16_t>::const_iterator it(std::find(R.cbegin(), R.cend(), i));
+        if (it == R.cend())
+        {
+            A.push_back(i);
+        }
+    }
+
+    if (A.empty())
+    {
+        return new Solution(sequence);
+    }
+
+    std::map<uint16_t, uint16_t> d;
+    // get deadline
+    for (uint16_t i : A)
+    {
+        for (int16_t t(0); t <= instance->getT(); ++t)
+        {
+            if (instance->getEarliestCompletionTime(i,t + 1) == -1)
+            {
+                d.emplace(i,pred(i,t));
+            }
+        }
+    }
+
+
+
+
+    // sort by deadline
+    std::stable_sort(A.begin(), A.end(), [&d](uint16_t x, uint16_t y) { return d[x] <= d[y]; });
+
+    int16_t T(instance->getT());
+
+    uint16_t n(A.size());
+    uint16_t i(A.at(n-1));
+
+    core::Matrix f;
+
+    for (int16_t t(0); t <= T; ++t)
+    {
+        f.emplace(i, std::map<uint16_t, core::tupleDP>());
+        int16_t tt(instance->getEarliestCompletionTime(i,t));
+        if ( tt == -1)
+        {
+            f[i].emplace(t, core::tupleDP(instance->getW(i),false,t));
+        }
+        else
+        {
+            f[i].emplace(t, core::tupleDP(0, true, tt));
+        }
+    }
+
+
+    std::vector<uint16_t> B(A);
+    std::stable_sort(B.begin(), B.end(), [&d](uint16_t x, uint16_t y) {return d[x] >= d[y]; });
+
+    B.erase(B.begin());
+
+    for (uint16_t j : B)
+    {
+        f.emplace(j, std::map<uint16_t, core::tupleDP>());
+        for (int16_t t(0); t <= T; ++t)
+        {
+            f[j].emplace(t, core::tupleDP(0, false, t));
+        }
+    }
+
+    for (uint16_t j : B)
+    {
+        for (int16_t t(0); t <= T; ++t)
+        {
+
+            int16_t tt (instance->getEarliestCompletionTime(j,t));
+            if (tt == -1)
+            {
+                f[j][t].setProfit(f.at(i).at(t).getProfit() + instance->getW(j));
+            }
+            else
+            {
+                if (f.at(i).at(t).getProfit() + instance->getW(j) <= f.at(i).at(tt).getProfit())
+                {
+                    f[j][t].setProfit(f.at(i).at(t).getProfit() + instance->getW(j));
+                }
+                else
+                {
+                    f[j][t].setAccept (true);
+                    f[j][t].setProfit(f.at(i).at(tt).getProfit());
+                    f[j][t].setTime(tt);
+
+                }
+
+            }
+        }
+        i = j;
+    }
+
+    return new Solution(UpperBound::getSequenceFromDP(instance,f,A,0,instance->getT()));
+
+}
+
 int Solution::insertBest(int16_t & t, uint16_t & profit, core::heuristic::ratio hRatio, const std::vector<uint16_t> & orders, const Instance * instance)
 {
     int insertedOrder (-1);
@@ -543,6 +693,8 @@ uint16_t Solution::getProfit(const Instance * instance) const
 
     return profit;
 }
+
+
 
 std::ostream &operator<<(std::ostream &os, const Solution &solution)
 {

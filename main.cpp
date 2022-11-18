@@ -2,10 +2,8 @@
 #include <chrono>
 #include <ctime>
 #include "solver/solver.h"
-#include <filesystem>
+//#include <filesystem>
 #include "solver/solution.h"
-
-
 
 int main(int argc, char* argv[])
 {
@@ -13,6 +11,9 @@ int main(int argc, char* argv[])
         std::cerr << "An argument is required" << std::endl;
         exit(EXIT_FAILURE);
     }
+
+
+
 
     omp_set_num_threads(8);
     try{
@@ -23,11 +24,11 @@ int main(int argc, char* argv[])
 
 		Instance* dat(Instance::load(datname));
 
-        std::filesystem::path f{ datname };
+        /*std::filesystem::path f{ datname };
         if (not std::filesystem::exists(f)){
             std::cout << "File " << datname << " does not exist" << std::endl;
             return EXIT_FAILURE;
-        }
+        }*/
 
 
 		char delim(';');
@@ -45,6 +46,7 @@ int main(int argc, char* argv[])
         dat->printCharacteristics(std::cout,delim);
         std::cout << delim << solver.getBestSolution()->getProfit(dat);
         std::cout << delim << solver.getBestSolution()->getTotalImpact(dat);
+//        std::cout << delim << *solver.getBestSolution() ;
 
         if(not args._hasResult){
             std::cout << delim << "nOPT" ;

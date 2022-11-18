@@ -14,12 +14,10 @@ void Solver::run()
 
 	runHeuristics(initialLowerBound, initialUpperBound);
 
-	//exit(0);
 	uint16_t lowerBound (initialLowerBound);
 
 
 	std::priority_queue<Node, std::vector<Node>, std::greater<Node>> _queue;
-
 
 	_queue.push(Node(-1, 0, 0, initialUpperBound, 0, utils::emptySet(), utils::emptyVector()));
 
@@ -65,7 +63,6 @@ void Solver::run()
 
 			int16_t earliestEndtime(_instance->getEarliestCompletionTime(j, u.getT()));
 
-
 			uint16_t incumbentProfit(u.getProfit());
 			uint16_t upperBound(u.getUpperBound());
 			uint16_t t(u.getT());
@@ -89,17 +86,18 @@ void Solver::run()
 
 			if (incumbentProfit + upperBound <= lowerBound){
 				continue;
-			} 
+			}
+
+
 
 			UpperBound * UB1(UpperBound::UpperBounds(_instance,core::upperBound::DP,t,_instance->getT(),visited));
 			ub1 = UB1->getProfit(_instance);
             delete UB1;
 
-            UpperBound * UB2 (UpperBound::UpperBounds(_instance,core::upperBound::Moore,t,_instance->getT(),visited));
-            uint16_t ub2 = UB2->getProfit(_instance);
 
-            delete UB2;
-            upperBound = std::min(std::min(ub1,ub2), upperBound);
+            uint16_t ub2 = UpperBound::MinCostFlowBound(_instance, t, _instance->getT(), visited);
+            //std::cout << "ub1=" << ub1 << ", ub2=" << ub2 << std::endl;
+             upperBound = std::min(std::min(ub1,ub2), upperBound);
 
 
 
@@ -135,8 +133,9 @@ void Solver::run()
 
 void Solver::runHeuristics(uint16_t& bestInitialLowerBound, uint16_t& bestInitialUpperBound)
 {
+    int nbHeuristics (12);
 	auto start = std::chrono::system_clock::now();
-	std::vector<double> durationLB(8,0);
+	std::vector<double> durationLB(nbHeuristics,0);
 
 	std::vector < Solution * > heuristics ={
 		Solution::Heuristic(_instance,core::heuristic::name::INSERT, core::heuristic::ratio::RATIO_A),
@@ -146,7 +145,12 @@ void Solver::runHeuristics(uint16_t& bestInitialLowerBound, uint16_t& bestInitia
         Solution::Heuristic(_instance,core::heuristic::name::INSERT_DP, core::heuristic::ratio::RATIO_B),
         Solution::Heuristic(_instance,core::heuristic::name::INSERT_DP, core::heuristic::ratio::RATIO_C),
         Solution::Heuristic(_instance,core::heuristic::name::INSERT_INTV, core::heuristic::ratio::NO_RATIO),
-        Solution::Heuristic(_instance,core::heuristic::name::DPH, core::heuristic::ratio::NO_RATIO)
+        Solution::Heuristic(_instance,core::heuristic::name::DPH, core::heuristic::ratio::NO_RATIO),
+      // H_4
+        Solution::Heuristic(_instance,core::heuristic::name::H4Variant, core::heuristic::ratio::RATIO_A),
+        Solution::Heuristic(_instance,core::heuristic::name::H4Variant, core::heuristic::ratio::RATIO_B),
+        Solution::Heuristic(_instance,core::heuristic::name::H4Variant, core::heuristic::ratio::RATIO_C),
+        Solution::Heuristic(_instance,core::heuristic::name::H4Variant, core::heuristic::ratio::NO_RATIO)
 	};
 
 
@@ -156,24 +160,31 @@ void Solver::runHeuristics(uint16_t& bestInitialLowerBound, uint16_t& bestInitia
 
 	bestInitialLowerBound = _bestSolution->getProfit(_instance);
 
-	std::vector <double> durationUB(2,0);
+    //UpperBound * UBHS = UpperBound::UpperBounds(_instance,core::upperBound::name::HochbaumShamir,0,_instance->getT(),{});
+
+    //std::cout << "UBHS=" << UBHS->getProfit(_instance) << std::endl;
+
+    //delete UBHS;
+    /*int nbUB(3);
+	std::vector <double> durationUB(nbUB,0);
 	std::vector < UpperBound * > upperBounds =
 	{
 		UpperBound::UpperBounds(_instance,core::upperBound::name::Moore,0,_instance->getT(),{}),
-        UpperBound::UpperBounds(_instance,core::upperBound::name::DP,0,_instance->getT(),{})
+        UpperBound::UpperBounds(_instance,core::upperBound::name::DP,0,_instance->getT(),{}),
+        UpperBound::UpperBounds(_instance,core::upperBound::name::HochbaumShamir,0,_instance->getT(),{})
 	};
 
 	UpperBound * bestSequenceUB;
 	bestSequenceUB = *std::max_element(upperBounds.begin(), upperBounds.end(),
-		[this](const UpperBound * x, const UpperBound * y) { return x->getProfit(_instance) >= y->getProfit(_instance); });
+		[this](const UpperBound * x, const UpperBound * y) { return x->getProfit(_instance) >= y->getProfit(_instance); });*/
 
+    uint16_t UBx = UpperBound::MinCostFlowBound(_instance, 0, _instance->getT(), {});
 
-	bestInitialUpperBound = bestSequenceUB->getProfit(_instance);
+    bestInitialUpperBound = UBx;
 
 	char delim(';');
 
-
-	std::vector<std::string> hNames = { "H_11","H_12","H_13","H_21","H_22","H_23","H_3","H_4" };
+	std::vector<std::string> hNames = { "H_11","H_12","H_13","H_21","H_22","H_23","H_3","H_4","H_41","H_42","H_43","H_44"};
 
 	/* OUTPUT */
 	for (size_t k(0); k < heuristics.size(); ++k)
@@ -185,15 +196,15 @@ void Solver::runHeuristics(uint16_t& bestInitialLowerBound, uint16_t& bestInitia
 		std::cout << delim << durationLB.at(k) << std::endl;
 	}
 
-	for (size_t k(0); k < upperBounds.size(); ++k)
-	{
+	/*for (size_t k(0); k < upperBounds.size(); ++k)
+	{*/
 		_instance->printCharacteristics(std::cout, delim);
-		std::cout << delim << upperBounds.at(k)->getProfit(_instance);
-		std::cout << delim << upperBounds.at(k)->getTotalImpact(_instance);
-		std::cout << delim << "UB_" << k;
-		std::cout << delim << durationUB.at(k) << std::endl;
+		std::cout << delim << UBx;
+		std::cout << delim << 0;
+		std::cout << delim << "UB_" << 0;
+		std::cout << delim << 0.0 << std::endl;
 
-	}
+	//}
 
 }
 

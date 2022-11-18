@@ -26,6 +26,7 @@ class Solution
         static Solution * Heuristics2(core::heuristic::ratio hRatio, const Instance * instance);
         static Solution * Heuristic3(const Instance * instance);
         static Solution * Heuristic4(const Instance * instance);
+        static Solution * Heuristic4Variant(core::heuristic::ratio hRatio, const Instance * instance);
 
         // return : int
         static int insertBest(int16_t & t, uint16_t & profit, core::heuristic::ratio hRatio, const std::vector<uint16_t> & orders, const Instance * instance);

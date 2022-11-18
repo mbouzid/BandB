@@ -2,8 +2,13 @@
 // Created by maria on 11/11/2022.
 //
 
-#include "upper_bound.h"
 
+#include "upper_bound.h"
+#include <sstream>
+#include <lemon/smart_graph.h>
+#include <map>
+#include <lemon/network_simplex.h>
+#include <algorithm>
 core::Matrix UpperBound::DP(const Instance * instance, std::vector<uint16_t> & A, int16_t a, int16_t b)
 {
     if (A.empty()) {
@@ -107,15 +112,27 @@ uint16_t UpperBound::getTotalImpact(const Instance * instance) const
 
 uint16_t UpperBound::getProfit(const Instance * instance) const
 {
-    uint16_t profit(0);
-    if (_sequence.empty())
+    if (_sequence.empty()) {
         return 0;
-    for (uint16_t i : _sequence)
-    {
-        profit += instance->getW(i);
     }
+    else {
+        if (_preemption) {
+            double profit (0.0);
+            for (uint16_t i: _sequence) {
+                profit += (double) instance->getW(i) / (double) instance->getP(i);
+            }
+            return std::ceil(profit);
+        }
+        else
+        {
 
-    return profit;
+            uint16_t profit(0);
+            for (uint16_t i: _sequence) {
+                profit += instance->getW(i);
+            }
+            return profit;
+        }
+    }
 }
 
 UpperBound * UpperBound::UpperBounds(const Instance *instance, core::upperBound::name ubName, int16_t a, int16_t b, const std::set<uint16_t> &visited)
@@ -136,6 +153,13 @@ UpperBound * UpperBound::UpperBounds(const Instance *instance, core::upperBound:
             upperBound = DPUpperBound(instance, a, b, visited);
             break;
         }
+
+        case core::upperBound::name::HochbaumShamir:
+        {
+            upperBound = HochbaumShamirBound(instance, a, b, visited);
+            break;
+        }
+
 
         default:
         {
@@ -207,7 +231,7 @@ UpperBound *UpperBound::MooreUpperBound(const Instance * instance, int16_t a, in
 
 
     if (A.empty())
-        return new UpperBound({});
+        return new UpperBound({},false);
 
     std::vector<uint16_t> N;
     for (uint16_t k(0); k < instance->getN(); ++k)
@@ -229,14 +253,14 @@ UpperBound *UpperBound::MooreUpperBound(const Instance * instance, int16_t a, in
     }
 
 
-    return new UpperBound(Nl);
+    return new UpperBound(Nl,false);
 }
 
 UpperBound * UpperBound::DPUpperBound(const Instance *instance, int16_t a, int16_t b, const std::set<uint16_t> &visited)
 {
     if (visited.size() == instance->getN())
     {
-        return new UpperBound({});
+        return new UpperBound({},false);
     }
 
 
@@ -252,7 +276,7 @@ UpperBound * UpperBound::DPUpperBound(const Instance *instance, int16_t a, int16
 
     if (A.empty())
     {
-        return new UpperBound({});
+        return new UpperBound({},false);
     }
 
 
@@ -260,7 +284,7 @@ UpperBound * UpperBound::DPUpperBound(const Instance *instance, int16_t a, int16
 
     std::vector<uint16_t> sequence(getSequenceFromDP(instance,f,A,a,b));
 
-    return new UpperBound(sequence);
+    return new UpperBound(sequence,false);
 }
 
 std::vector<uint16_t> UpperBound::getSequenceFromDP(const Instance * instance, const core::Matrix &f, std::vector<uint16_t> &A, int16_t a, int16_t b)
@@ -294,4 +318,191 @@ std::vector<uint16_t> UpperBound::getSequenceFromDP(const Instance * instance, c
 
     return sequence;
 }
+
+UpperBound * UpperBound::HochbaumShamirBound(const Instance *instance, int16_t a, int16_t b, const std::set<uint16_t> & visited) {
+
+    std::vector<uint16_t> A;
+
+    for (uint16_t i(0); i < instance->getN(); ++i){
+        if ((visited.find(i) == visited.cend()) and ( a <= instance->getD(i) - instance->getP(i) +1) and (instance->getEarliestCompletionTime(i,a) != -1) ){
+            A.push_back(i);
+        }
+    }
+
+    if (A.empty()){
+        return new UpperBound({},true);
+    }
+
+    // order by descending weights
+    std::stable_sort(A.begin(), A.end(),[instance]	(const uint16_t & x, const uint16_t & y){
+        return instance->getW(x) >= instance->getW(y);
+    });
+
+    // supply and demand node
+    std::map<uint16_t,uint16_t> supply;
+
+    for(uint16_t i : A){
+        supply.emplace(i,instance->getP(i));
+    }
+
+
+    std::map <int16_t, bool> X;
+
+    for (uint16_t t(a); t <= b; ++t) {
+        X.emplace(t,false);
+    }
+
+    std::vector<uint16_t> sequence;
+
+    for (uint16_t i : A){
+        for (uint16_t k(0); k < instance->getP(i); ++k) {
+            for (int16_t t(a); t <= b; ++t) {
+                if (instance->getE(i) <= instance->getEE(t) and not X[t] and t <= instance->getD(i) and supply.at(i) > 0) {
+                    X[t] = true;
+                    supply[i] -= 1;
+                    sequence.push_back(i);
+                }
+            }
+        }
+    }
+
+
+    return new UpperBound(sequence,true);
+}
+
+
+uint16_t UpperBound::MinCostFlowBound(const Instance *instance, int16_t a, int16_t b, const std::set<uint16_t> &visited) {
+
+
+    lemon::SmartDigraph g;
+    lemon::SmartDigraph::NodeMap<int> supply_demands(g);
+
+    int P = 0;
+    for (uint16_t i(0); i < instance->getN(); ++i){
+        P += instance->getP(i);
+    }
+
+    int dmax = instance->getDmax();
+    double round_factor(10E5);
+    int balance_node_index (P + dmax);
+    int sink_id (balance_node_index + 1);
+
+    int nbNodes (P+dmax+1);
+    lemon::SmartDigraph::Node nodes[nbNodes];
+    std::map<int, lemon::SmartDigraph::Node> nodeIndexMap;
+
+    // Create Arcs
+    int nbArcs(P*(dmax-1));
+    lemon::SmartDigraph::Arc arcs[nbArcs];
+    lemon::SmartDigraph::ArcMap<int> costs(g);
+    lemon::SmartDigraph::ArcMap<int> capacities(g);
+
+    for (int i(0); i < sink_id+1; ++i) {
+        nodes[i] = g.addNode();
+        nodeIndexMap[i] = nodes[i];
+    }
+
+    // Create arcs for each p_i to each node representing a time unit and an additional node
+    // to balance the network
+    int k(0);
+    int aux_t (0);
+    for (int i(0); i < instance->getN(); ++i){
+        for (int j(0); j < instance->getP(i); ++j) {
+            int index_node = aux_t;
+            for (int t(P); t < P + dmax; ++t) {
+                if (instance->getE(i) <= instance->getEE(t - P) and instance->getD(i) >= t - P and t >= a and visited.find(i) == visited.end()){
+                    // index_node -> t
+                    // capacity = 1
+                    // weight = w[i]/p[i]
+                    arcs[k] = g.addArc(nodeIndexMap[index_node] , nodeIndexMap[t]);
+                    costs[arcs[k]] = (-1) * int((((double)instance->getW(i) / (double)instance->getP(i)) * round_factor));
+                    capacities[arcs[k]] = 1;
+                    k+=1;
+                }
+            }
+            // index_node -> balance_node_index
+            // weight = 0
+            // capacity = 1
+            arcs[k] = g.addArc(nodeIndexMap[index_node] , nodeIndexMap[balance_node_index]);
+            costs[arcs[k]] = 0;
+            capacities[arcs[k]] = 1;
+            aux_t += 1;
+            k+=1;
+        }
+
+    }
+
+
+    //Create arcs from each node representing a time unit to the sink
+    // t -> sink_id
+    // capacity = 1
+    // weight = 0
+    for (int t(P); t < P+dmax; ++t){
+        arcs[k] = g.addArc(nodeIndexMap[t] , nodeIndexMap[sink_id]);
+        costs[arcs[k]] = 0;
+        capacities[arcs[k]] = 1;
+        k+=1;
+    }
+    //Create the arc from the balancing node to the sink
+    // balance_node_index -> sink_id
+    // capacity = P
+    // weight = 0
+    arcs[k] = g.addArc(nodeIndexMap[balance_node_index] , nodeIndexMap[sink_id]);
+    costs[arcs[k]] = 0;
+    capacities[arcs[k]] = P;
+    k+=1;
+
+
+    //Add the demands for all nodes. 1 for p_i nodes, and -P for the sink
+    for (int i(0); i < sink_id+1; ++i){
+        int demand_node;
+        if (i < P){
+            demand_node = 1;
+        }
+        else if (i < sink_id){
+            demand_node = 0;
+        }
+        else{
+            demand_node = (-1)*P;
+        }
+        supply_demands[nodes[i]] = demand_node;
+    }
+
+
+    lemon::NetworkSimplex<lemon::SmartDigraph, int, int> solver(g);
+    solver.upperMap(capacities).costMap(costs).supplyMap(supply_demands);
+
+    lemon::SmartDigraph::ArcMap<int> flows(g);
+
+    lemon::NetworkSimplex<lemon::SmartDigraph, int, int>::ProblemType status = solver.run();
+
+    uint16_t Objective(0);
+    switch (status) {
+
+        case lemon::NetworkSimplex<lemon::SmartDigraph, int, int>::INFEASIBLE: {
+            std::cerr << "insufficient flow" << std::endl;
+            break;
+        }
+
+        case lemon::NetworkSimplex<lemon::SmartDigraph, int, int>::OPTIMAL: {
+            solver.flowMap(flows);
+
+            Objective = (-1)*std::floor((double)solver.totalCost()/(double)round_factor);
+            break;
+        }
+
+        case lemon::NetworkSimplex<lemon::SmartDigraph, int, int>::UNBOUNDED: {
+            std::cerr << "infinite flow" << std::endl;
+            break;
+        }
+
+        default:{
+            break;
+        }
+    }
+
+    return Objective;
+}
+
+
 
